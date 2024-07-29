@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <title>Dashboard Page</title>
+    <style>
+        .sidebar {
+            width: 18rem; /* Sidebar width set to 18rem */
+            height: 100vh; /* Full height sidebar */
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+        }
+
+        .menu-item {
+            position: relative;
+        }
+
+        .menu-item a {
+            transition: background-color 0.3s, color 0.3s;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .menu-item a:hover,
+        .menu-item a.active {
+            background-color: #2d3748; /* Tailwind gray-800 */
+            color: #63b3ed; /* Tailwind blue-300 */
+        }
+
+        .menu-icon {
+            font-size: 1.5rem;
+        }
+
+        .menu-title {
+            display: none;
+            position: absolute;
+            top: 3rem; /* Adjust the position */
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            background-color: #2d3748; /* Tailwind gray-800 */
+            color: #fff;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            font-weight: bold;
+        }
+
+        .menu-item:hover .menu-title {
+            display: block;
+        }
+
+        .sidebar-content {
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .sidebar-content.active {
+            display: block;
+        }
+
+        .search-bar input {
+            background-color: white;
+            color: black;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex">
+<a href="#"
+   onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
+   class="absolute top-5 right-5 text-red-600 p-3 rounded-md hover:text-red-800 transition"
+>
+    <i class="fas fa-sign-out-alt logout-icon"></i> Logout
+</a>
+<form id="logout-form" th:action="@{/logout}" method="post" style="display: none;">
+    <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" />
+</form>
+
+<div class="flex w-full">
+    <aside class="bg-gray-800 text-white sidebar shadow-lg fixed">
+        <div class="flex flex-col items-center">
+            <h2 class="text-2xl font-semibold mb-6">Dashboard</h2>
+            <ul class="flex flex-row space-x-6 w-full justify-center">
+                <li class="menu-item">
+                    <a href="#" id="showFriendList" data-title="Friend List" class="text-lg">
+                        <i class="fas fa-users menu-icon"></i>
+                        <span class="menu-title">Friend List</span>
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a href="#" id="showFriendRequests" data-title="Friend Requests" class="text-lg">
+                        <i class="fas fa-user-friends menu-icon"></i>
+                        <span class="menu-title">Friend Requests</span>
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a href="#" id="showAddFriend" data-title="Add Friend" class="text-lg">
+                        <i class="fas fa-user-plus menu-icon"></i>
+                        <span class="menu-title">Add Friend</span>
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a href="#" id="showChats" data-title="Chat" class="text-lg active">
+                        <i class="fas fa-comments menu-icon"></i>
+                        <span class="menu-title">Chat</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="sidebar-content friend-list w-full">
+            <h3 class="text-xl mb-4">Friend List</h3>
+            <ul class="w-full">
+                <!-- Friends will be listed here -->
+            </ul>
+        </div>
+        <div class="sidebar-content friend-requests w-full">
+            <h3 class="text-xl mb-4">Friend Requests</h3>
+            <ul class="w-full">
+                <!-- Friend requests will be listed here -->
+            </ul>
+        </div>
+        <div class="sidebar-content add-friend w-full">
+            <h3 class="text-xl mb-4">Add Friend</h3>
+            <form id="searchForm" class="w-full">
+                <div class="search-bar flex mb-4 w-full">
+                    <input id="friendUsername" type="text" name="query" placeholder="Enter username" class="flex-1 p-2 border border-gray-300 rounded-l-md">
+                    <button id="friendRequestButton" type="submit" class="bg-blue-600 text-white p-2 rounded-r-md hover:bg-blue-800">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </form>
+            <div class="search-results-wrapper">
+                <ul class="search-results w-full">
+                    <!-- Searched users will be listed here -->
+                </ul>
+            </div>
+        </div>
+        <div class="sidebar-content chat-history w-full active">
+            <h3 class="text-xl mb-4">Chat History</h3>
+            <ul class="w-full">
+                <!-- Chat history will be listed here -->
+            </ul>
+        </div>
+    </aside>
+    <main class="flex flex-col w-full h-full p-6 ml-72 transition-all duration-300 ease-in-out">
+        <div class="chat-details bg-white p-6 rounded-lg shadow-lg w-full">
+            <div class="chat-details-header flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-semibold">Chat Title</h2>
+                <!-- Additional controls can be added here -->
+            </div>
+            <div class="chat-messages h-64 overflow-y-auto mb-4">
+                <!-- Chat messages will be loaded here -->
+            </div>
+            <div class="chat-input flex">
+                <input type="text" placeholder="Type a message..." class="flex-1 p-2 border border-gray-300 rounded-l-md">
+                <button type="button" class="bg-blue-600 text-white p-2 rounded-r-md hover:bg-blue-800">Send</button>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.1.4/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    // Extracting the username from Thymeleaf and assigning it to a JavaScript variable
+    const currentUsername = /*[[${username}]]*/ 'anonymous';
+    const currentUserId = /*[[${userId}]]*/ null;
+
+    console.log("Current User: " + currentUsername);
+    console.log("Current User ID: " + currentUserId);
+    /*]]>*/
+</script>
+
+<script>
+    let stompClient = null;
+
+    function connect() {
+        let socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function (frame) {
+            console.log('Connected: ' + frame);
+            stompClient.subscribe('/user/specific', function(message) {
+                handleFriendRequestResponse(message.body);
+            });
+        }, function (error) {
+            console.error('Stomp Error: ' + error);
+        });
+    }
+
+    function getFriendRequest(username) {
+        $.ajax({
+            type: 'GET',
+            url: `/friendRequests`,
+            data: { username: username },
+            success: function(data) {
+                let friendRequestsDiv = $('.friend-requests ul');
+                friendRequestsDiv.empty();
+
+                data.forEach(function(request) {
+                    friendRequestsDiv.append(`
+                        <li class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
+                            <span>${request.username}</span>
+                            <button class="flex items-center justify-center w-10 h-10 bg-green-500 text-white rounded-md hover:bg-green-600 relative group" onclick="acceptFriendRequest('${request.userId}')">
+                                <i class="fas fa-check text-base"></i>
+                                <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Accept</span>
+                            </button>
+                        </li>
+                    `);
+                });
+            },
+            error: function(err) {
+                console.error('Error fetching friend requests:', err);
+            }
+        });
+    }
+
+    function sendFriendRequest(username) {
+        let request = {
+            from: currentUsername,
+            to: username
+        };
+        stompClient.send("/app/friendRequest", {}, JSON.stringify(request));
+        updateAddFriendList(username);
+    }
+
+    function handleFriendRequestResponse(message) {
+        if (message.startsWith("Error:")) {
+            console.error(message);
+            alert(message);
+        } else {
+            console.log("New friend request:", message);
+            updateFriendRequestsSection(message);
+        }
+    }
+
+    function updateAddFriendList(toUsername) {
+        let addFriendButton = $(`button[data-username='${toUsername}']`);
+        if (addFriendButton.length) {
+            addFriendButton.replaceWith(`
+                <button class="flex items-center justify-center w-10 h-10 bg-gray-500 text-white rounded-md cursor-not-allowed relative group">
+                    <i class="fas fa-clock text-base"></i>
+                    <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Pending</span>
+                </button>
+            `);
+        }
+    }
+
+    function updateFriendRequestsSection(message) {
+        let data = message.split(". Request ID: ");
+        let usernames = data[0].split("New friend request from ")[1].split(" to ");
+        let fromUsername = usernames[0];
+        let toUsername = usernames[1];
+        let friendRequestId = data[1];
+
+        let friendRequestsDiv = $('.friend-requests ul');
+        friendRequestsDiv.append(`
+            <li class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
+                <span>${fromUsername}</span>
+                <button class="flex items-center justify-center w-10 h-10 bg-green-500 text-white rounded-md hover:bg-green-600 relative group" onclick="acceptFriendRequest('${friendRequestId}')">
+                    <i class="fas fa-check text-base"></i>
+                    <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Accept</span>
+                </button>
+            </li>
+        `);
+    }
+
+    function acceptFriendRequest(requestId) {
+        // Implement the function to send a request to the server to accept the friend request
+        // You can use stompClient.send to communicate with the backend or make a direct AJAX call
+    }
+
+    function searchUsers(query) {
+        $.ajax({
+            type: 'GET',
+            url: '/searchUsers',
+            data: { query: query },
+            success: function (data) {
+                let resultsDiv = $('.add-friend .search-results');
+                resultsDiv.empty();
+
+                data.forEach(function (user) {
+                    let buttonHTML = '';
+                    let status = 'NONE';
+
+                    // Check the status in the friendsOf array
+                    user.friendsOf.forEach(friend => {
+                        if (friend.userId === currentUserId) {
+                            status = friend.status;
+                        }
+                    });
+
+                    switch (status) {
+                        case 'PENDING':
+                            buttonHTML = `
+                                <button class="flex items-center justify-center w-10 h-10 bg-gray-500 text-white rounded-md cursor-not-allowed relative group">
+                                    <i class="fas fa-clock text-base"></i>
+                                    <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Pending</span>
+                                </button>
+                            `;
+                            break;
+                        case 'ACCEPTED':
+                            buttonHTML = `
+                                <button class="flex items-center justify-center w-10 h-10 bg-green-400 text-white rounded-md cursor-not-allowed relative group">
+                                    <i class="fas fa-user text-base"></i>
+                                    <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Friends</span>
+                                </button>
+                            `;
+                            break;
+                        default:
+                            buttonHTML = `
+                                <button class="flex items-center justify-center w-10 h-10 bg-blue-600 text-white rounded-md hover:bg-blue-800 relative group" data-username="${user.username}" onclick="sendFriendRequest('${user.username}')">
+                                    <i class="fas fa-user-plus text-base"></i>
+                                    <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Add Friend</span>
+                                </button>
+                            `;
+                            break;
+                    }
+
+                    resultsDiv.append(`
+                        <li class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
+                            <span>${user.username}</span>
+                            ${buttonHTML}
+                        </li>
+                    `);
+                });
+            },
+            error: function (err) {
+                console.error('Error fetching user data:', err);
+            }
+        });
+    }
+
+    $(document).ready(function() {
+        connect();
+
+        getFriendRequest(currentUsername);
+
+        $('#searchForm').submit(function(event) {
+            event.preventDefault();
+            let query = $('#friendUsername').val();
+            searchUsers(query);
+        });
+
+        $('#showFriendList').click(function() {
+            setActiveMenuItem($(this));
+            hideAllSections();
+            $('.friend-list').addClass('active');
+        });
+
+        $('#showFriendRequests').click(function() {
+            setActiveMenuItem($(this));
+            hideAllSections();
+            $('.friend-requests').addClass('active');
+        });
+
+        $('#showAddFriend').click(function() {
+            setActiveMenuItem($(this));
+            hideAllSections();
+            $('.add-friend').addClass('active');
+        });
+
+        $('#showChats').click(function() {
+            setActiveMenuItem($(this));
+            hideAllSections();
+            $('.chat-history').addClass('active');
+        });
+
+        function setActiveMenuItem(element) {
+            $('.menu-item a').removeClass('active');
+            element.addClass('active');
+        }
+
+        function hideAllSections() {
+            $('.sidebar-content').removeClass('active');
+        }
+
+        // Set Chat as default active and show chat history
+        setActiveMenuItem($('#showChats'));
+        $('.chat-history').addClass('active');
+    });
+
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head th:replace="~{fragments.html :: head}">
+    <title>Error Page</title>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+<div class="container bg-white text-center p-10 rounded-lg shadow-lg">
+    <h1 class="text-3xl font-bold text-gray-800 mb-4">Something went wrong</h1>
+    <p class="text-5xl font-bold text-red-600 mb-6" th:text="${statusCode}">Error Code</p>
+    <p class="text-gray-600 mb-8" th:text="${errorMessage}">
+        The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.
+    </p>
+    <a href="/" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-300">
+        Go to Home
+    </a>
+</div>
+</body>
+</html>
