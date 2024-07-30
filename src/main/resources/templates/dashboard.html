@@ -7,7 +7,7 @@
     <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <title>Dashboard Page</title>
+    <title>Spring Chat</title>
     <style>
         .sidebar {
             width: 18rem;
@@ -89,7 +89,7 @@
 <div class="flex w-full">
     <aside class="bg-gray-800 text-white sidebar shadow-lg fixed">
         <div class="flex flex-col items-center">
-            <h2 class="text-2xl font-semibold mb-6">Dashboard</h2>
+            <h2 class="text-2xl font-semibold mb-6">Spring Chat</h2>
             <ul class="flex flex-row space-x-6 w-full justify-center">
                 <li class="menu-item">
                     <a href="#" id="showFriendList" data-title="Friend List" class="text-lg">
@@ -170,6 +170,7 @@
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.1.4/sockjs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
 
@@ -221,20 +222,64 @@
                 friendRequestsDiv.empty();
 
                 data.forEach(function(request) {
-                    console.log(request);
                     friendRequestsDiv.append(`
                         <li data-request-id="${request.id}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
                             <span>${request.username}</span>
-                            <button class="flex items-center justify-center w-10 h-10 bg-green-500 text-white rounded-md hover:bg-green-600 relative group" onclick="acceptFriendRequest('${request.id}')">
-                                <i class="fas fa-check-circle text-base"></i>
-                                <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Accept</span>
-                            </button>
+                            <div class="flex space-x-2">
+                                <button class="flex items-center justify-center w-10 h-10 bg-green-500 text-white rounded-md hover:bg-green-600 relative group" onclick="acceptFriendRequest('${request.id}')">
+                                    <i class="fas fa-check-circle text-base"></i>
+                                    <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Accept</span>
+                                </button>
+                                <button class="flex items-center justify-center w-10 h-10 bg-red-500 text-white rounded-md hover:bg-red-600 relative group" onclick="declineFriendRequest('${request.id}')">
+                                    <i class="fas fa-times-circle text-base"></i>
+                                    <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Decline</span>
+                                </button>
+                            </div>
                         </li>
                     `);
                 });
             },
             error: function(err) {
                 console.error('Error fetching friend requests:', err);
+            }
+        });
+    }
+
+    // Function to fetch friend list
+    function getFriendList(username) {
+        $.ajax({
+            type: 'GET',
+            url: '/friendList',
+            data: { username: username },
+            success: function(data) {
+                let friendListDiv = $('.friend-list ul');
+                friendListDiv.empty();
+
+                data.forEach(function(friend) {
+                    // Format the date as "Added on Month Day, Year"
+                    let updatedDate = new Date(friend.updatedAt);
+                    let formattedDate = updatedDate.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+
+                    friendListDiv.append(`
+                        <li class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
+                            <div class="flex flex-col">
+                                <span>${friend.username}</span>
+                                <span class="text-gray-400 text-xs">Added on ${formattedDate}</span>
+                            </div>
+                            <button class="flex items-center justify-center w-10 h-10 bg-red-500 text-white rounded-md hover:bg-red-600 relative group" onclick="removeFriend('${friend.id}')">
+                                <i class="fas fa-user-minus text-base"></i>
+                                <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Remove</span>
+                            </button>
+                        </li>
+                    `);
+                });
+            },
+            error: function(err) {
+                console.log('Error fetching friend list:', err);
             }
         });
     }
@@ -285,10 +330,16 @@
         friendRequestsDiv.append(`
             <li data-request-id="${friendRequestId}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
                 <span>${fromUsername}</span>
-                <button class="flex items-center justify-center w-10 h-10 bg-green-500 text-white rounded-md hover:bg-green-600 relative group" onclick="acceptFriendRequest('${friendRequestId}')">
-                    <i class="fas fa-check-circle text-base"></i>
-                    <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Accept</span>
-                </button>
+                <div class="flex space-x-2">
+                    <button class="flex items-center justify-center w-10 h-10 bg-green-500 text-white rounded-md hover:bg-green-600 relative group" onclick="acceptFriendRequest('${friendRequestId}')">
+                        <i class="fas fa-check-circle text-base"></i>
+                        <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Accept</span>
+                    </button>
+                    <button class="flex items-center justify-center w-10 h-10 bg-red-500 text-white rounded-md hover:bg-red-600 relative group" onclick="declineFriendRequest('${friendRequestId}')">
+                        <i class="fas fa-times-circle text-base"></i>
+                        <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Decline</span>
+                    </button>
+                </div>
             </li>
         `);
     }
@@ -300,14 +351,56 @@
             url: '/friendRequests/accept',
             data: { requestId: requestId },
             success: function (response) {
-                alert(response);
-                $(`li[data-request-id="${requestId}"]`).remove();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Friend Request Accepted',
+                    text: response,
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    $(`li[data-request-id="${requestId}"]`).remove();
+                });
             },
             error: function (err) {
-                console.error('Error accepting friend request:', err);
-                alert('Error: Could not accept friend request. Please try again.');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Could not accept friend request. Please try again.',
+                    confirmButtonText: 'OK'
+                });
             }
         });
+    }
+
+    // Function to decline a friend request
+    function declineFriendRequest(requestId) {
+        $.ajax({
+            type: 'POST',
+            url: '/friendRequests/decline',
+            data: { requestId: requestId },
+            success: function (response) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Friend Request Declined',
+                    text: response,
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    $(`li[data-request-id="${requestId}"]`).remove();
+                });
+            },
+            error: function (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Could not decline friend request. Please try again.',
+                    confirmButtonText: 'OK'
+                });
+            }
+        });
+    }
+
+    // Function to remove a friend
+    function removeFriend(friendId) {
+
     }
 
     // Function to search for users
@@ -384,6 +477,7 @@
     $(document).ready(function() {
         connect();
         getFriendRequest(currentUsername);
+        getFriendList(currentUsername);
 
         // Search form submission handler
         $('#searchForm').submit(function(event) {

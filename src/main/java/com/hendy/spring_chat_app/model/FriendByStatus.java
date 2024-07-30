@@ -6,11 +6,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Date;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class PendingFriendRequest {
+public class FriendByStatus {
 
     @NotBlank
     private Long id;
@@ -20,4 +22,7 @@ public class PendingFriendRequest {
 
     @NotBlank
     private String username;
+
+    @NotBlank
+    private Date updatedAt;
 }

@@ -3,7 +3,7 @@ package com.hendy.spring_chat_app.repository;
 import com.hendy.spring_chat_app.entity.Friend;
 import com.hendy.spring_chat_app.entity.FriendshipStatus;
 import com.hendy.spring_chat_app.entity.User;
-import com.hendy.spring_chat_app.model.PendingFriendRequest;
+import com.hendy.spring_chat_app.model.FriendByStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,6 +20,6 @@ public interface FriendRepository extends JpaRepository<Friend, Long> {
 //    @Query("SELECT f FROM Friend f WHERE f.friend.username = :username AND f.status = :status")
 //    List<Friend> findStatusByUsername(@Param("username") String username, @Param("status") FriendshipStatus status);
 
-    @Query("SELECT new com.hendy.spring_chat_app.model.PendingFriendRequest(f.id, f.user.id, f.user.username) FROM Friend f WHERE f.friend.username = :username AND f.status = :status")
-    List<PendingFriendRequest> findStatusByUsername(@Param("username") String username, @Param("status") FriendshipStatus status);
+    @Query("SELECT new com.hendy.spring_chat_app.model.FriendByStatus(f.id, f.user.id, f.user.username, f.updatedAt) FROM Friend f WHERE f.friend.username = :username AND f.status = :status")
+    List<FriendByStatus> findStatusByUsername(@Param("username") String username, @Param("status") FriendshipStatus status);
 }
