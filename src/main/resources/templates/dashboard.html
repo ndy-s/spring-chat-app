@@ -503,6 +503,8 @@
             setActiveMenuItem($(this));
             hideAllSections();
             $('.add-friend').addClass('active');
+            $('.add-friend #friendUsername').val('');
+            $('.add-friend .search-results').empty();
         });
 
         $('#showChats').click(function() {
