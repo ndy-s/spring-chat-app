@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <title>Dashboard Page</title>
@@ -183,11 +185,17 @@
 </script>
 
 <script>
-    const csrfToken = document.cookie.replace(/(?:(?:^|.*;\s*)XSRF-TOKEN\s*\=\s*([^;]*).*$)|^.*$/, '$1');
-    console.log("Current CSRF: " + csrfToken);
+    // Configure AJAX settings
+    $(document).ajaxSend(function(e, xhr, options) {
+        // Only set CSRF token for POST requests
+        const token = $("meta[name='_csrf']").attr("content");
+        const header = $("meta[name='_csrf_header']").attr("content");
+        xhr.setRequestHeader(header, token);
+    });
 
     let stompClient = null;
 
+    // Function to establish WebSocket connection
     function connect() {
         let socket = new SockJS('/ws');
         stompClient = Stomp.over(socket);
@@ -202,6 +210,7 @@
         });
     }
 
+    // Function to fetch friend requests
     function getFriendRequest(username) {
         $.ajax({
             type: 'GET',
@@ -230,6 +239,7 @@
         });
     }
 
+    // Function to send a friend request via WebSocket
     function sendFriendRequest(username) {
         let request = {
             from: currentUsername,
@@ -239,6 +249,7 @@
         updateAddFriendList(username);
     }
 
+    // Function to handle friend request responses
     function handleFriendRequestResponse(message) {
         if (message.startsWith("Error:")) {
             console.error(message);
@@ -249,6 +260,7 @@
         }
     }
 
+    // Function to update the add friend button state
     function updateAddFriendList(toUsername) {
         let addFriendButton = $(`button[data-username='${toUsername}']`);
         if (addFriendButton.length) {
@@ -261,6 +273,7 @@
         }
     }
 
+    // Function to update the friend requests section
     function updateFriendRequestsSection(message) {
         let data = message.split(". Request ID: ");
         let usernames = data[0].split("New friend request from ")[1].split(" to ");
@@ -280,14 +293,11 @@
         `);
     }
 
+    // Function to accept a friend request
     function acceptFriendRequest(requestId) {
-        // const csrfToken = document.cookie.replace(/(?:(?:^|.*;\s*)XSRF-TOKEN\s*\=\s*([^;]*).*$)|^.*$/, '$1');
-        // console.log(csrfToken);
-
         $.ajax({
             type: 'POST',
             url: '/friendRequests/accept',
-            // headers: { 'X-XSRF-TOKEN': csrfToken },
             data: { requestId: requestId },
             success: function (response) {
                 alert(response);
@@ -300,6 +310,7 @@
         });
     }
 
+    // Function to search for users
     function searchUsers(query) {
         $.ajax({
             type: 'GET',
@@ -327,6 +338,7 @@
                         }
                     });
 
+                    // Determine the button HTML based on status
                     switch (status) {
                         case 'PENDING':
                             buttonHTML = `
@@ -368,17 +380,19 @@
         });
     }
 
+    // Document ready function
     $(document).ready(function() {
         connect();
-
         getFriendRequest(currentUsername);
 
+        // Search form submission handler
         $('#searchForm').submit(function(event) {
             event.preventDefault();
             let query = $('#friendUsername').val();
             searchUsers(query);
         });
 
+        // Menu item click handlers
         $('#showFriendList').click(function() {
             setActiveMenuItem($(this));
             hideAllSections();
@@ -403,6 +417,7 @@
             $('.chat-history').addClass('active');
         });
 
+        // Utility functions
         function setActiveMenuItem(element) {
             $('.menu-item a').removeClass('active');
             element.addClass('active');
@@ -416,7 +431,6 @@
         setActiveMenuItem($('#showChats'));
         $('.chat-history').addClass('active');
     });
-
 </script>
 </body>
 </html>
