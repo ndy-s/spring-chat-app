@@ -8,8 +8,8 @@
     <title>Dashboard Page</title>
     <style>
         .sidebar {
-            width: 18rem; /* Sidebar width set to 18rem */
-            height: 100vh; /* Full height sidebar */
+            width: 18rem;
+            height: 100vh;
             display: flex;
             flex-direction: column;
             padding: 1rem;
@@ -31,8 +31,8 @@
 
         .menu-item a:hover,
         .menu-item a.active {
-            background-color: #2d3748; /* Tailwind gray-800 */
-            color: #63b3ed; /* Tailwind blue-300 */
+            background-color: #2d3748;
+            color: #63b3ed;
         }
 
         .menu-icon {
@@ -42,11 +42,11 @@
         .menu-title {
             display: none;
             position: absolute;
-            top: 3rem; /* Adjust the position */
+            top: 3rem;
             left: 50%;
             transform: translateX(-50%);
             white-space: nowrap;
-            background-color: #2d3748; /* Tailwind gray-800 */
+            background-color: #2d3748;
             color: #fff;
             padding: 0.25rem 0.5rem;
             border-radius: 0.25rem;
@@ -183,6 +183,9 @@
 </script>
 
 <script>
+    const csrfToken = document.cookie.replace(/(?:(?:^|.*;\s*)XSRF-TOKEN\s*\=\s*([^;]*).*$)|^.*$/, '$1');
+    console.log("Current CSRF: " + csrfToken);
+
     let stompClient = null;
 
     function connect() {
@@ -209,11 +212,12 @@
                 friendRequestsDiv.empty();
 
                 data.forEach(function(request) {
+                    console.log(request);
                     friendRequestsDiv.append(`
-                        <li class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
+                        <li data-request-id="${request.id}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
                             <span>${request.username}</span>
-                            <button class="flex items-center justify-center w-10 h-10 bg-green-500 text-white rounded-md hover:bg-green-600 relative group" onclick="acceptFriendRequest('${request.userId}')">
-                                <i class="fas fa-check text-base"></i>
+                            <button class="flex items-center justify-center w-10 h-10 bg-green-500 text-white rounded-md hover:bg-green-600 relative group" onclick="acceptFriendRequest('${request.id}')">
+                                <i class="fas fa-check-circle text-base"></i>
                                 <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Accept</span>
                             </button>
                         </li>
@@ -266,10 +270,10 @@
 
         let friendRequestsDiv = $('.friend-requests ul');
         friendRequestsDiv.append(`
-            <li class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
+            <li data-request-id="${friendRequestId}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
                 <span>${fromUsername}</span>
                 <button class="flex items-center justify-center w-10 h-10 bg-green-500 text-white rounded-md hover:bg-green-600 relative group" onclick="acceptFriendRequest('${friendRequestId}')">
-                    <i class="fas fa-check text-base"></i>
+                    <i class="fas fa-check-circle text-base"></i>
                     <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Accept</span>
                 </button>
             </li>
@@ -277,8 +281,23 @@
     }
 
     function acceptFriendRequest(requestId) {
-        // Implement the function to send a request to the server to accept the friend request
-        // You can use stompClient.send to communicate with the backend or make a direct AJAX call
+        // const csrfToken = document.cookie.replace(/(?:(?:^|.*;\s*)XSRF-TOKEN\s*\=\s*([^;]*).*$)|^.*$/, '$1');
+        // console.log(csrfToken);
+
+        $.ajax({
+            type: 'POST',
+            url: '/friendRequests/accept',
+            // headers: { 'X-XSRF-TOKEN': csrfToken },
+            data: { requestId: requestId },
+            success: function (response) {
+                alert(response);
+                $(`li[data-request-id="${requestId}"]`).remove();
+            },
+            error: function (err) {
+                console.error('Error accepting friend request:', err);
+                alert('Error: Could not accept friend request. Please try again.');
+            }
+        });
     }
 
     function searchUsers(query) {
@@ -293,6 +312,13 @@
                 data.forEach(function (user) {
                     let buttonHTML = '';
                     let status = 'NONE';
+
+                    // Check the status in the friends array
+                    user.friends.forEach(friend => {
+                        if (friend.friendId === currentUserId) {
+                            status = friend.status;
+                        }
+                    });
 
                     // Check the status in the friendsOf array
                     user.friendsOf.forEach(friend => {

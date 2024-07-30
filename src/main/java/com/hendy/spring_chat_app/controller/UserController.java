@@ -39,6 +39,15 @@ public class UserController {
             SearchUsers searchUsers = new SearchUsers();
             searchUsers.setUsername(user.getUsername());
 
+            // Map friends to SearchUserFriends DTO
+            List<SearchUserFriends> friends = user.getFriends().stream().map(friend -> {
+                SearchUserFriends searchUserFriends = new SearchUserFriends();
+                searchUserFriends.setUserId(friend.getUser().getId());
+                searchUserFriends.setFriendId(friend.getFriend().getId());
+                searchUserFriends.setStatus(friend.getStatus());
+                return searchUserFriends;
+            }).collect(Collectors.toList());
+
             // Map friendsOf to SearchUserFriends DTO
             List<SearchUserFriends> friendsOf = user.getFriendsOf().stream().map(friend -> {
                 SearchUserFriends searchUserFriends = new SearchUserFriends();
@@ -48,6 +57,7 @@ public class UserController {
                 return searchUserFriends;
             }).collect(Collectors.toList());
 
+            searchUsers.setFriends(friends);
             searchUsers.setFriendsOf(friendsOf);
 
             return searchUsers;

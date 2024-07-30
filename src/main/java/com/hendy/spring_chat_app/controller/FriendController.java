@@ -13,6 +13,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -39,17 +40,32 @@ public class FriendController {
     public void sendToSpecificUser(@Payload FriendRequest request) {
         try {
             Friend friend = friendService.sendFriendRequest(request);
-            String message = String.format("New friend request from %s to %s. Request ID: %d",
-                    request.getFrom(), request.getTo(), friend.getId());
+            String message = String.format("New friend request from %s to %s. Request ID: %d", request.getFrom(), request.getTo(), friend.getId());
             simpMessagingTemplate.convertAndSendToUser(request.getTo(), "/specific", message);
         } catch (IllegalArgumentException | IllegalStateException e) {
             log.error("Error processing friend request", e);
-            simpMessagingTemplate.convertAndSendToUser(request.getFrom(), "/specific",
-                    "Error: " + e.getMessage());
+            simpMessagingTemplate.convertAndSendToUser(request.getFrom(), "/specific", "Error: " + e.getMessage());
         } catch (Exception e) {
             log.error("Unexpected error processing friend request", e);
-            simpMessagingTemplate.convertAndSendToUser(request.getFrom(), "/specific",
-                    "Error: Unexpected error occurred.");
+            simpMessagingTemplate.convertAndSendToUser(request.getFrom(), "/specific", "Error: Unexpected error occurred.");
+        }
+    }
+
+    @PostMapping("/friendRequests/accept")
+    @ResponseBody
+    public String acceptFriendRequest(@RequestParam("requestId") String requestId) {
+        log.info("Processing request with ID: " + requestId);
+
+        try {
+            Long id = Long.parseLong(requestId);
+            friendService.acceptFriendRequest(id);
+            return "Friend request accepted successfully.";
+        } catch (NumberFormatException e) {
+            return "Error: Invalid request ID format.";
+        } catch (IllegalArgumentException e) {
+            return "Error: " + e.getMessage();
+        } catch (Exception e) {
+            return "Error: An unexpected error occurred while accepting the friend request.";
         }
     }
 }

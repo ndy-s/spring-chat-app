@@ -13,6 +13,9 @@ import lombok.NoArgsConstructor;
 public class PendingFriendRequest {
 
     @NotBlank
+    private Long id;
+
+    @NotBlank
     private Long userId;
 
     @NotBlank

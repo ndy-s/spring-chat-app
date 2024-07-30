@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class FriendService {
@@ -44,6 +45,19 @@ public class FriendService {
                 .build();
 
         return friendRepository.save(friend);
+    }
+
+    @Transactional
+    public void acceptFriendRequest(Long id) {
+        Optional<Friend> friendRequest = friendRepository.findById(id);
+
+        if (friendRequest.isPresent()) {
+            Friend friend = friendRequest.get();
+            friend.setStatus(FriendshipStatus.ACCEPTED);
+            friendRepository.save(friend);
+        } else {
+            throw new IllegalArgumentException("Friend request not found for ID: " + id);
+        }
     }
 
 }

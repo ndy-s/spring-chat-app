@@ -16,5 +16,8 @@ public class SearchUsers {
     private String username;
 
     @NotBlank
+    private List<SearchUserFriends> friends;
+
+    @NotBlank
     private List<SearchUserFriends> friendsOf;
 }
