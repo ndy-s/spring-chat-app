@@ -72,17 +72,19 @@ public class FriendController {
 
     @PostMapping("/friendRequests/accept")
     @ResponseBody
-    public String acceptFriendRequest(@RequestParam("requestId") String requestId) {
+    public FriendByStatus acceptFriendRequest(@RequestParam("requestId") String requestId) {
         try {
             Long id = Long.parseLong(requestId);
-            friendService.acceptFriendRequest(id);
-            return "Friend request accepted successfully.";
+            return friendService.acceptFriendRequest(id);
         } catch (NumberFormatException e) {
-            return "Error: Invalid request ID format.";
+            log.error("Invalid request ID format.", e);
+            return friendService.errorFriendRequestResponse("Error: Invalid request ID format. " + e.getMessage());
         } catch (IllegalArgumentException e) {
-            return "Error: " + e.getMessage();
+            log.error("Error: ", e);
+            return friendService.errorFriendRequestResponse("Error: " + e.getMessage());
         } catch (Exception e) {
-            return "Error: An unexpected error occurred while accepting the friend request.";
+            log.error("An unexpected error occurred while accepting the friend request.", e);
+            return friendService.errorFriendRequestResponse("Error: n unexpected error occurred while accepting the friend request. " + e.getMessage());
         }
     }
 

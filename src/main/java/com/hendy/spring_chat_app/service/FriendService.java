@@ -82,16 +82,33 @@ public class FriendService {
     }
 
     @Transactional
-    public void acceptFriendRequest(Long id) {
+    public FriendByStatus acceptFriendRequest(Long id) {
         Optional<Friend> friendRequest = friendRepository.findById(id);
 
         if (friendRequest.isPresent()) {
             Friend friend = friendRequest.get();
             friend.setStatus(FriendshipStatus.ACCEPTED);
             friendRepository.save(friend);
+
+            // Convert Friend to FriendByStatus
+            return FriendByStatus.builder()
+                    .id(friend.getId())
+                    .userId(friend.getUser().getId())
+                    .username(friend.getUser().getUsername())
+                    .updatedAt(friend.getUpdatedAt())
+                    .build();
         } else {
             throw new IllegalArgumentException("Friend request not found for ID: " + id);
         }
+    }
+
+    public FriendByStatus errorFriendRequestResponse(String message) {
+        return FriendByStatus.builder()
+                .id(null)
+                .userId(null)
+                .username(message)
+                .updatedAt(null)
+                .build();
     }
 
     @Transactional

@@ -191,16 +191,49 @@ function acceptFriendRequest(requestId) {
         url: '/friendRequests/accept',
         data: { requestId },
         success: function(response) {
+            // Check if the response contains an error message
+            if (response.username.startsWith("Error:")) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: response.username,
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
             Swal.fire({
                 icon: 'success',
                 title: 'Friend Request Accepted',
-                text: response,
+                text: 'Friend request accepted successfully.',
                 confirmButtonText: 'OK'
             }).then(() => {
                 $(`li[data-request-id="${requestId}"]`).remove();
-
-                // Decrease the badge count
                 updateBadge(-1);
+
+                // TODO: add send stompclient for target udpate their friend list
+
+                // Update the friend list with new friend information
+                const friendListDiv = $('.friend-list ul');
+                const updatedDate = new Date(response.updatedAt);
+                const formattedDate = updatedDate.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+
+                friendListDiv.append(`
+                    <li data-friend-id="${response.id}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
+                        <div class="flex flex-col">
+                            <span>${response.username}</span>
+                            <span class="text-gray-400 text-xs">Added on ${formattedDate}</span>
+                        </div>
+                        <button class="flex items-center justify-center w-10 h-10 bg-red-500 text-white rounded-md hover:bg-red-600 relative group" onclick="removeFriend('${response.id}', '${response.username}')">
+                            <i class="fas fa-user-minus text-base"></i>
+                            <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Remove</span>
+                        </button>
+                    </li>
+                `);
             });
         },
         error: function() {
@@ -228,8 +261,6 @@ function declineFriendRequest(requestId) {
                 confirmButtonText: 'OK'
             }).then(() => {
                 $(`li[data-request-id="${requestId}"]`).remove();
-
-                // Decrease the badge count
                 updateBadge(-1);
             });
         },
