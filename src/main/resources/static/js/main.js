@@ -63,6 +63,9 @@ function handleFriendRequest(messageBody) {
     const toUsername = usernames[1];
     const friendRequestId = data[1];
 
+    // Increment the badge count
+    updateBadge(1);
+
     let friendRequestsDiv = $('.friend-requests ul');
     friendRequestsDiv.append(`
         <li data-request-id="${friendRequestId}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
@@ -98,6 +101,9 @@ function getFriendRequest(username) {
         success: function(data) {
             let friendRequestsDiv = $('.friend-requests ul');
             friendRequestsDiv.empty();
+
+            // Set badge count based on the number of requests
+            updateBadge(data.length);
 
             data.forEach(function(request) {
                 friendRequestsDiv.append(`
@@ -192,6 +198,9 @@ function acceptFriendRequest(requestId) {
                 confirmButtonText: 'OK'
             }).then(() => {
                 $(`li[data-request-id="${requestId}"]`).remove();
+
+                // Decrease the badge count
+                updateBadge(-1);
             });
         },
         error: function() {
@@ -219,6 +228,9 @@ function declineFriendRequest(requestId) {
                 confirmButtonText: 'OK'
             }).then(() => {
                 $(`li[data-request-id="${requestId}"]`).remove();
+
+                // Decrease the badge count
+                updateBadge(-1);
             });
         },
         error: function() {
@@ -326,6 +338,19 @@ function searchUsers(query) {
             console.error('Error fetching user data:', err);
         }
     });
+}
+
+// Helper function to update the badge count
+function updateBadge(countChange) {
+    let badge = $('#notification-badge');
+    let currentCount = parseInt(badge.text()) || 0;
+    let newCount = currentCount + countChange;
+
+    if (newCount > 0) {
+        badge.text(newCount).removeClass('hidden');
+    } else {
+        badge.text('0').addClass('hidden');
+    }
 }
 
 // Document ready function
