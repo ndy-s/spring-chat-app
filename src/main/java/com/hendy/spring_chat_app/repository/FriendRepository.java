@@ -17,9 +17,9 @@ public interface FriendRepository extends JpaRepository<Friend, Long> {
 
     Optional<Friend> findByUserAndFriend(User user, User friend);
 
-//    @Query("SELECT f FROM Friend f WHERE f.friend.username = :username AND f.status = :status")
-//    List<Friend> findStatusByUsername(@Param("username") String username, @Param("status") FriendshipStatus status);
+    @Query("SELECT new com.hendy.spring_chat_app.model.FriendByStatus(f.id, f.friend.id, f.friend.username, f.updatedAt) FROM Friend f WHERE f.user.username = :username AND f.status = :status")
+    List<FriendByStatus> findStatusByUserUsername(@Param("username") String username, @Param("status") FriendshipStatus status);
 
     @Query("SELECT new com.hendy.spring_chat_app.model.FriendByStatus(f.id, f.user.id, f.user.username, f.updatedAt) FROM Friend f WHERE f.friend.username = :username AND f.status = :status")
-    List<FriendByStatus> findStatusByUsername(@Param("username") String username, @Param("status") FriendshipStatus status);
+    List<FriendByStatus> findStatusByFriendUsername(@Param("username") String username, @Param("status") FriendshipStatus status);
 }

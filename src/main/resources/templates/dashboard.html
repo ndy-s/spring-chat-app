@@ -204,7 +204,24 @@
         stompClient.connect({}, function (frame) {
             console.log('Connected: ' + frame);
             stompClient.subscribe('/user/specific', function(message) {
-                handleFriendRequestResponse(message.body);
+                let messageBody = message.body;
+
+                if (messageBody.startsWith("Error:")) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: messageBody,
+                        confirmButtonText: 'OK'
+                    });
+                } else if (messageBody.startsWith("[Friend Request]")) {
+                    console.log("New friend request: ", messageBody);
+                    updateFriendRequestsSection(messageBody);
+                } else if (messageBody.startsWith("[Remove Friend]")) {
+                    console.log("Friend removed: ", messageBody);
+
+                    let data = messageBody.split(". Friend ID: ");
+                    $(`li[data-friend-id="${data[1]}"]`).remove();
+                }
             });
         }, function (error) {
             console.error('Stomp Error: ' + error);
@@ -265,12 +282,12 @@
                     });
 
                     friendListDiv.append(`
-                        <li class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
+                        <li data-friend-id="${friend.id}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
                             <div class="flex flex-col">
                                 <span>${friend.username}</span>
                                 <span class="text-gray-400 text-xs">Added on ${formattedDate}</span>
                             </div>
-                            <button class="flex items-center justify-center w-10 h-10 bg-red-500 text-white rounded-md hover:bg-red-600 relative group" onclick="removeFriend('${friend.id}')">
+                            <button class="flex items-center justify-center w-10 h-10 bg-red-500 text-white rounded-md hover:bg-red-600 relative group" onclick="removeFriend('${friend.id}', '${friend.username}')">
                                 <i class="fas fa-user-minus text-base"></i>
                                 <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Remove</span>
                             </button>
@@ -290,24 +307,11 @@
             from: currentUsername,
             to: username
         };
+
         stompClient.send("/app/friendRequest", {}, JSON.stringify(request));
-        updateAddFriendList(username);
-    }
 
-    // Function to handle friend request responses
-    function handleFriendRequestResponse(message) {
-        if (message.startsWith("Error:")) {
-            console.error(message);
-            alert(message);
-        } else {
-            console.log("New friend request:", message);
-            updateFriendRequestsSection(message);
-        }
-    }
-
-    // Function to update the add friend button state
-    function updateAddFriendList(toUsername) {
-        let addFriendButton = $(`button[data-username='${toUsername}']`);
+        // Update the add friend button state
+        let addFriendButton = $(`button[data-username='${username}']`);
         if (addFriendButton.length) {
             addFriendButton.replaceWith(`
                 <button class="flex items-center justify-center w-10 h-10 bg-gray-500 text-white rounded-md cursor-not-allowed relative group">
@@ -399,8 +403,36 @@
     }
 
     // Function to remove a friend
-    function removeFriend(friendId) {
-
+    function removeFriend(friendId, friendUsername) {
+        $.ajax({
+            type: 'POST',
+            url: '/friend/remove',
+            data: { friendId: friendId },
+            success: function (response) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Friend Removed',
+                    text: response,
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    let request = {
+                        friendId: friendId,
+                        from: currentUsername,
+                        to: friendUsername
+                    };
+                    stompClient.send("/app/removeFriend", {}, JSON.stringify(request));
+                    $(`li[data-friend-id="${friendId}"]`).remove();
+                });
+            },
+            error: function (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Could not remove friend. Please try again.',
+                    confirmButtonText: 'OK'
+                });
+            }
+        });
     }
 
     // Function to search for users

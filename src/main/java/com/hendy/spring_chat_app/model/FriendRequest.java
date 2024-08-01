@@ -13,6 +13,8 @@ import lombok.NoArgsConstructor;
 @Builder
 public class FriendRequest {
 
+    private Long friendId;
+
     @NotBlank
     @Size(max = 100)
     private String from;

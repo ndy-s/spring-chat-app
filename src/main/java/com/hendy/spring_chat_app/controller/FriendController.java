@@ -45,7 +45,7 @@ public class FriendController {
     public void sendToSpecificUser(@Payload FriendRequest request) {
         try {
             Friend friend = friendService.sendFriendRequest(request);
-            String message = String.format("New friend request from %s to %s. Request ID: %d", request.getFrom(), request.getTo(), friend.getId());
+            String message = String.format("[Friend Request] New friend request from %s to %s. Request ID: %d", request.getFrom(), request.getTo(), friend.getId());
             simpMessagingTemplate.convertAndSendToUser(request.getTo(), "/specific", message);
         } catch (IllegalArgumentException | IllegalStateException e) {
             log.error("Error processing friend request", e);
@@ -53,6 +53,20 @@ public class FriendController {
         } catch (Exception e) {
             log.error("Unexpected error processing friend request", e);
             simpMessagingTemplate.convertAndSendToUser(request.getFrom(), "/specific", "Error: Unexpected error occurred.");
+        }
+    }
+
+    @MessageMapping("/removeFriend")
+    public void receiveRemovedFriend(@Payload FriendRequest request) {
+        try {
+            String message = String.format("[Remove Friend] %s has removed you as a friend. Friend ID: %d", request.getFrom(), request.getFriendId());
+            simpMessagingTemplate.convertAndSendToUser(request.getTo(), "/specific", message);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            log.error("Error processing friend request", e);
+            simpMessagingTemplate.convertAndSendToUser(request.getTo(), "/specific", "Error: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error processing friend request", e);
+            simpMessagingTemplate.convertAndSendToUser(request.getTo(), "/specific", "Error: Unexpected error occurred.");
         }
     }
 
@@ -77,7 +91,7 @@ public class FriendController {
     public String declineFriendRequest(@RequestParam("requestId") String requestId) {
         try {
             Long id = Long.parseLong(requestId);
-            friendService.declineFriendRequest(id);
+            friendService.removeFriend(id);
             return "Friend request declined successfully.";
         } catch (NumberFormatException e) {
             return "Error: Invalid request ID format.";
@@ -85,6 +99,22 @@ public class FriendController {
             return "Error: " + e.getMessage();
         } catch (Exception e) {
             return "Error: An unexpected error occurred while declining the friend request.";
+        }
+    }
+
+    @PostMapping("/friend/remove")
+    @ResponseBody
+    public String removeFriend(@RequestParam("friendId") String friendId) {
+        try {
+            Long id = Long.parseLong(friendId);
+            friendService.removeFriend(id);
+            return "Friend removed successfully.";
+        } catch (NumberFormatException e) {
+            return "Error: Invalid request ID format.";
+        } catch (IllegalArgumentException e) {
+            return "Error: " + e.getMessage();
+        } catch (Exception e) {
+            return "Error: An unexpected error occurred while removing friend.";
         }
     }
 }
