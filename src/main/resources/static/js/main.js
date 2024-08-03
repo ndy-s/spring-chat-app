@@ -30,6 +30,17 @@ function onConnected(frame) {
 // Callback function for connection error
 function onError(error) {
     console.error('Stomp Error: ' + error);
+
+    Swal.fire({
+        title: 'Error!',
+        text: 'An error occurred. You will be logged out.',
+        icon: 'error',
+        confirmButtonText: 'OK'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = '/logout';
+        }
+    });
 }
 
 // Function to handle incoming messages
@@ -180,10 +191,16 @@ function getFriendList(username) {
                             <span>${friend.username}</span>
                             <span class="text-gray-400 text-xs">Added on ${formattedDate}</span>
                         </div>
-                        <button class="flex items-center justify-center w-10 h-10 bg-red-500 text-white rounded-md hover:bg-red-600 relative group" onclick="removeFriend('${friend.id}', '${friend.username}')">
-                            <i class="fas fa-user-minus text-base"></i>
-                            <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Remove</span>
-                        </button>
+                        <div class="flex items-center space-x-2">
+                            <button class="flex items-center justify-center w-10 h-10 bg-blue-500 text-white rounded-md hover:bg-blue-600 relative group" onclick="startChat('${friend.id}', '${friend.username}')">
+                                <i class="fas fa-comments text-base"></i>
+                                <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Chat</span>
+                            </button>
+                            <button class="flex items-center justify-center w-10 h-10 bg-red-500 text-white rounded-md hover:bg-red-600 relative group" onclick="removeFriend('${friend.id}', '${friend.username}')">
+                                <i class="fas fa-user-minus text-base"></i>
+                                <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Remove</span>
+                            </button>
+                        </div>
                     </li>
                 `);
             });
