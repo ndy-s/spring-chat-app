@@ -42,6 +42,8 @@ function handleMessage(message) {
         handleFriendRequest(messageBody);
     } else if (messageBody.startsWith("[Remove Friend]")) {
         handleRemoveFriend(messageBody);
+    } else if (messageBody.startsWith("[Accepted Friend]")) {
+        handleAcceptedFriend(messageBody);
     }
 }
 
@@ -86,10 +88,35 @@ function handleFriendRequest(messageBody) {
 
 // Function to handle removing friends
 function handleRemoveFriend(messageBody) {
-    console.log("Friend removed: ", messageBody);
+    console.log(messageBody);
     const data = messageBody.split(". Friend ID: ");
     const friendId = data[1];
     $(`li[data-friend-id="${friendId}"]`).remove();
+}
+
+// Function to handle accepted friend request
+function handleAcceptedFriend(messageBody) {
+    console.log(messageBody);
+    const parts = messageBody.split('. Friend ID: ');
+    const friendId = parts[1].split(', Updated: ')[0];
+    const date = parts[1].split(', Updated: ')[1];
+    const usernamePart = parts[0].split('] ')[1];
+    const username = usernamePart.split(' has accepted you as a friend')[0];
+    const formattedDate = date;
+
+    const friendListDiv = $('.friend-list ul');
+    friendListDiv.append(`
+        <li data-friend-id="${friendId}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
+            <div class="flex flex-col">
+                <span>${username}</span>
+                <span class="text-gray-400 text-xs">Added on ${formattedDate}</span>
+            </div>
+            <button class="flex items-center justify-center w-10 h-10 bg-red-500 text-white rounded-md hover:bg-red-600 relative group" onclick="removeFriend('${friendId}', '${username}')">
+                <i class="fas fa-user-minus text-base"></i>
+                <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Remove</span>
+            </button>
+        </li>
+    `);
 }
 
 // Function to fetch friend requests
@@ -185,11 +212,11 @@ function sendFriendRequest(username) {
 }
 
 // Function to accept a friend request
-function acceptFriendRequest(requestId) {
+function acceptFriendRequest(friendId) {
     $.ajax({
         type: 'POST',
         url: '/friendRequests/accept',
-        data: { requestId },
+        data: { friendId },
         success: function(response) {
             // Check if the response contains an error message
             if (response.username.startsWith("Error:")) {
@@ -208,10 +235,8 @@ function acceptFriendRequest(requestId) {
                 text: 'Friend request accepted successfully.',
                 confirmButtonText: 'OK'
             }).then(() => {
-                $(`li[data-request-id="${requestId}"]`).remove();
+                $(`li[data-request-id="${friendId}"]`).remove();
                 updateBadge(-1);
-
-                // TODO: add send stompclient for target udpate their friend list
 
                 // Update the friend list with new friend information
                 const friendListDiv = $('.friend-list ul');
@@ -221,6 +246,9 @@ function acceptFriendRequest(requestId) {
                     month: 'long',
                     day: 'numeric'
                 });
+
+                const request = { from: currentUsername, to: response.username, friendId: friendId, updatedAt: formattedDate };
+                stompClient.send("/app/acceptedFriendRequest", {}, JSON.stringify(request));
 
                 friendListDiv.append(`
                     <li data-friend-id="${response.id}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
@@ -248,11 +276,11 @@ function acceptFriendRequest(requestId) {
 }
 
 // Function to decline a friend request
-function declineFriendRequest(requestId) {
+function declineFriendRequest(friendId) {
     $.ajax({
         type: 'POST',
         url: '/friendRequests/decline',
-        data: { requestId },
+        data: { friendId },
         success: function(response) {
             Swal.fire({
                 icon: 'success',
@@ -260,7 +288,7 @@ function declineFriendRequest(requestId) {
                 text: response,
                 confirmButtonText: 'OK'
             }).then(() => {
-                $(`li[data-request-id="${requestId}"]`).remove();
+                $(`li[data-request-id="${friendId}"]`).remove();
                 updateBadge(-1);
             });
         },

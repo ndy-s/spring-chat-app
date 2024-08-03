@@ -7,13 +7,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Date;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 public class FriendRequest {
-
-    private Long friendId;
 
     @NotBlank
     @Size(max = 100)
@@ -22,4 +22,8 @@ public class FriendRequest {
     @NotBlank
     @Size(max = 100)
     private String to;
+
+    private Long friendId;
+
+    private String updatedAt;
 }
