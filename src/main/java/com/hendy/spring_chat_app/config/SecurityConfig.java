@@ -16,7 +16,6 @@ import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 @EnableWebSecurity
 public class SecurityConfig {
 
-
     @Bean
     public UserDetailsService userDetailsService() {
         return new CustomUserDetailsService();

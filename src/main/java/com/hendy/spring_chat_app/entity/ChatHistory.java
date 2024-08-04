@@ -32,17 +32,4 @@ public class ChatHistory {
 
     @Temporal(TemporalType.TIMESTAMP)
     private Date lastMessageTimestamp;
-
-    @Column(nullable = false, updatable = false)
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date createdAt = new Date();
-
-    @Column(nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date updatedAt = new Date();
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = new Date();
-    }
 }

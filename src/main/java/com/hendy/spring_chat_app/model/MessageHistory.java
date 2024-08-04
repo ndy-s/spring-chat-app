@@ -1,6 +1,7 @@
 package com.hendy.spring_chat_app.model;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,7 +13,7 @@ import java.util.Date;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class FriendByStatus {
+public class MessageHistory {
 
     private Long id;
 
@@ -21,5 +22,5 @@ public class FriendByStatus {
     @NotBlank
     private String username;
 
-    private Date updatedAt;
+    private Date lastMessageTimestamp;
 }

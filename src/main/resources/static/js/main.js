@@ -122,12 +122,61 @@ function handleAcceptedFriend(messageBody) {
                 <span>${username}</span>
                 <span class="text-gray-400 text-xs">Added on ${formattedDate}</span>
             </div>
-            <button class="flex items-center justify-center w-10 h-10 bg-red-500 text-white rounded-md hover:bg-red-600 relative group" onclick="removeFriend('${friendId}', '${username}')">
-                <i class="fas fa-user-minus text-base"></i>
-                <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Remove</span>
-            </button>
+            <div class="flex items-center space-x-2">
+                <button class="flex items-center justify-center w-10 h-10 bg-blue-500 text-white rounded-md hover:bg-blue-600 relative group" onclick="startChat('${friendId}')">
+                    <i class="fas fa-comments text-base"></i>
+                    <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Chat</span>
+                </button>
+                <button class="flex items-center justify-center w-10 h-10 bg-red-500 text-white rounded-md hover:bg-red-600 relative group" onclick="removeFriend('${friendId}', '${username}')">
+                    <i class="fas fa-user-minus text-base"></i>
+                    <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Remove</span>
+                </button>
+            </div>
         </li>
     `);
+}
+
+// Function to fetch chat history
+function getChatHistory(username) {
+    $.ajax({
+        type: 'GET',
+        url: '/chatHistory',
+        data: { username },
+        success: function (data) {
+            const chatList = $('#chatHistory');
+            chatList.empty();
+
+            data.forEach(chat => {
+                const chatId = `chat_${chat.id}`;
+                const updatedDate = new Date(chat.lastMessageTimestamp);
+                const formattedDate = updatedDate.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+                const formattedTime = updatedDate.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                // Check if chat already exists
+                if ($(`#${chatId}`).length === 0) {
+                    chatList.append(`
+                        <div id="${chatId}" class="chat-item bg-gray-800 text-white p-3 mb-2 rounded-md cursor-pointer hover:bg-gray-700 transition-colors" onclick="setActiveChat('${chatId}')">
+                            <div class="flex justify-between items-center">
+                                <span class="text-lg font-bold">${chat.username}</span>
+                                <span class="text-xs text-gray-400">${formattedDate} ${formattedTime}</span>
+                            </div>
+                            <div class="text-gray-400 text-sm">${0 || 'No messages yet'}</div>
+                        </div>
+                    `);
+                }
+            });
+        },
+        error: function (err) {
+            console.error('Error fetching chat history:', err);
+        }
+    });
 }
 
 // Function to fetch friend requests
@@ -135,15 +184,15 @@ function getFriendRequest(username) {
     $.ajax({
         type: 'GET',
         url: '/friendRequests',
-        data: { username: username },
-        success: function(data) {
+        data: { username },
+        success: function (data) {
             let friendRequestsDiv = $('.friend-requests ul');
             friendRequestsDiv.empty();
 
             // Set badge count based on the number of requests
             updateBadge(data.length);
 
-            data.forEach(function(request) {
+            data.forEach(function (request) {
                 friendRequestsDiv.append(`
                     <li data-request-id="${request.id}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
                         <span>${request.username}</span>
@@ -161,7 +210,7 @@ function getFriendRequest(username) {
                 `);
             });
         },
-        error: function(err) {
+        error: function (err) {
             console.error('Error fetching friend requests:', err);
         }
     });
@@ -173,7 +222,7 @@ function getFriendList(username) {
         type: 'GET',
         url: '/friendList',
         data: { username },
-        success: function(data) {
+        success: function (data) {
             const friendListDiv = $('.friend-list ul');
             friendListDiv.empty();
 
@@ -192,7 +241,7 @@ function getFriendList(username) {
                             <span class="text-gray-400 text-xs">Added on ${formattedDate}</span>
                         </div>
                         <div class="flex items-center space-x-2">
-                            <button class="flex items-center justify-center w-10 h-10 bg-blue-500 text-white rounded-md hover:bg-blue-600 relative group" onclick="startChat('${friend.id}', '${friend.username}')">
+                            <button class="flex items-center justify-center w-10 h-10 bg-blue-500 text-white rounded-md hover:bg-blue-600 relative group" onclick="startChat('${friend.id}')">
                                 <i class="fas fa-comments text-base"></i>
                                 <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Chat</span>
                             </button>
@@ -205,7 +254,7 @@ function getFriendList(username) {
                 `);
             });
         },
-        error: function(err) {
+        error: function (err) {
             console.error('Error fetching friend list:', err);
         }
     });
@@ -213,7 +262,7 @@ function getFriendList(username) {
 
 // Function to send a friend request via WebSocket
 function sendFriendRequest(username) {
-    const request = { from: currentUsername, to: username };
+    const request = {from: currentUsername, to: username};
 
     stompClient.send("/app/friendRequest", {}, JSON.stringify(request));
 
@@ -234,7 +283,7 @@ function acceptFriendRequest(friendId) {
         type: 'POST',
         url: '/friendRequests/accept',
         data: { friendId },
-        success: function(response) {
+        success: function (response) {
             // Check if the response contains an error message
             if (response.username.startsWith("Error:")) {
                 Swal.fire({
@@ -264,7 +313,12 @@ function acceptFriendRequest(friendId) {
                     day: 'numeric'
                 });
 
-                const request = { from: currentUsername, to: response.username, friendId: friendId, updatedAt: formattedDate };
+                const request = {
+                    from: currentUsername,
+                    to: response.username,
+                    friendId: friendId,
+                    updatedAt: formattedDate
+                };
                 stompClient.send("/app/acceptedFriendRequest", {}, JSON.stringify(request));
 
                 friendListDiv.append(`
@@ -273,15 +327,21 @@ function acceptFriendRequest(friendId) {
                             <span>${response.username}</span>
                             <span class="text-gray-400 text-xs">Added on ${formattedDate}</span>
                         </div>
-                        <button class="flex items-center justify-center w-10 h-10 bg-red-500 text-white rounded-md hover:bg-red-600 relative group" onclick="removeFriend('${response.id}', '${response.username}')">
-                            <i class="fas fa-user-minus text-base"></i>
-                            <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Remove</span>
-                        </button>
+                        <div class="flex items-center space-x-2">
+                            <button class="flex items-center justify-center w-10 h-10 bg-blue-500 text-white rounded-md hover:bg-blue-600 relative group" onclick="startChat('${response.id}')">
+                                <i class="fas fa-comments text-base"></i>
+                                <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Chat</span>
+                            </button>
+                            <button class="flex items-center justify-center w-10 h-10 bg-red-500 text-white rounded-md hover:bg-red-600 relative group" onclick="removeFriend('${response.id}', '${response.username}')">
+                                <i class="fas fa-user-minus text-base"></i>
+                                <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Remove</span>
+                            </button>
+                        </div>
                     </li>
                 `);
             });
         },
-        error: function() {
+        error: function () {
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -298,7 +358,7 @@ function declineFriendRequest(friendId) {
         type: 'POST',
         url: '/friendRequests/decline',
         data: { friendId },
-        success: function(response) {
+        success: function (response) {
             Swal.fire({
                 icon: 'success',
                 title: 'Friend Request Declined',
@@ -309,7 +369,7 @@ function declineFriendRequest(friendId) {
                 updateBadge(-1);
             });
         },
-        error: function() {
+        error: function () {
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -326,19 +386,19 @@ function removeFriend(friendId, friendUsername) {
         type: 'POST',
         url: '/friend/remove',
         data: { friendId },
-        success: function(response) {
+        success: function (response) {
             Swal.fire({
                 icon: 'success',
                 title: 'Friend Removed',
                 text: response,
                 confirmButtonText: 'OK'
             }).then(() => {
-                const request = { friendId, from: currentUsername, to: friendUsername };
+                const request = {friendId, from: currentUsername, to: friendUsername};
                 stompClient.send("/app/removeFriend", {}, JSON.stringify(request));
                 $(`li[data-friend-id="${friendId}"]`).remove();
             });
         },
-        error: function() {
+        error: function () {
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -355,7 +415,7 @@ function searchUsers(query) {
         type: 'GET',
         url: '/searchUsers',
         data: { query },
-        success: function(data) {
+        success: function (data) {
             const resultsDiv = $('.add-friend .search-results');
             resultsDiv.empty();
 
@@ -410,10 +470,80 @@ function searchUsers(query) {
                 `);
             });
         },
-        error: function(err) {
-            console.error('Error fetching user data:', err);
+        error: function (err) {
+            console.error('Error fetching user data: ', err);
         }
     });
+}
+
+// Function to start chat with friend
+function startChat(friendId) {
+    $('#showChats').click();
+
+    $.ajax({
+        type: 'POST',
+        url: '/startChat',
+        data: {
+            friendId: friendId,
+            username: currentUsername
+        },
+        success: function (data) {
+            // Check if there's an error message in the response
+            if (data.error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: `${data.errorMessage} (Error Code: ${data.errorCode})`,
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+
+            // If no error, proceed to handle chat data
+            const chatId = `chat_${data.id}`;
+            const chatList = $('#chatHistory');
+            const updatedDate = new Date(data.lastMessageTimestamp);
+            const formattedDate = updatedDate.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+            const formattedTime = updatedDate.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            // Check if chat already exists
+            if ($(`#${chatId}`).length === 0) {
+                chatList.prepend(`
+                    <div id="${chatId}" class="chat-item bg-gray-800 text-white p-3 mb-2 rounded-md cursor-pointer hover:bg-gray-700 transition-colors" onclick="setActiveChat('${chatId}')">
+                        <div class="flex justify-between items-center">
+                            <span class="text-lg font-bold">${data.username}</span>
+                            <span class="text-xs text-gray-400">${formattedDate} ${formattedTime || ''}</span>
+                        </div>
+                        <div class="text-gray-400 text-sm">${0 || 'No messages yet'}</div>
+                    </div>
+                `);
+            }
+
+            // Set the chat as active
+            setActiveChat(chatId);
+        },
+        error: function () {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Could not fetching chat history. Please try again.',
+                confirmButtonText: 'OK'
+            });
+        }
+    });
+}
+
+// Function to set an active chat (placeholder)
+function setActiveChat(chatId) {
+    $('.chat-item').removeClass('bg-gray-700').addClass('bg-gray-800');
+    $(`#${chatId}`).removeClass('bg-gray-800').addClass('bg-gray-700');
 }
 
 // Helper function to update the badge count
@@ -432,6 +562,7 @@ function updateBadge(countChange) {
 // Document ready function
 $(document).ready(function () {
     connect();
+    getChatHistory(currentUsername);
     getFriendRequest(currentUsername);
     getFriendList(currentUsername);
 

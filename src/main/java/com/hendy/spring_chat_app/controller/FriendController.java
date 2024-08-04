@@ -77,8 +77,8 @@ public class FriendController {
             Long id = Long.parseLong(friendId);
             return friendService.acceptFriendRequest(id);
         } catch (NumberFormatException e) {
-            log.error("Invalid request ID format.", e);
-            return friendService.errorFriendRequestResponse("Error: Invalid request ID format. " + e.getMessage());
+            log.error("Invalid friend ID format.", e);
+            return friendService.errorFriendRequestResponse("Error: Invalid friend ID format. " + e.getMessage());
         } catch (IllegalArgumentException e) {
             log.error("Error: ", e);
             return friendService.errorFriendRequestResponse("Error: " + e.getMessage());
@@ -110,7 +110,7 @@ public class FriendController {
             friendService.removeFriend(id);
             return "Friend request declined successfully.";
         } catch (NumberFormatException e) {
-            return "Error: Invalid request ID format.";
+            return "Error: Invalid friend ID format.";
         } catch (IllegalArgumentException e) {
             return "Error: " + e.getMessage();
         } catch (Exception e) {
@@ -126,7 +126,7 @@ public class FriendController {
             friendService.removeFriend(id);
             return "Friend removed successfully.";
         } catch (NumberFormatException e) {
-            return "Error: Invalid request ID format.";
+            return "Error: Invalid friend ID format.";
         } catch (IllegalArgumentException e) {
             return "Error: " + e.getMessage();
         } catch (Exception e) {
