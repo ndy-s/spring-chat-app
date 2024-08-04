@@ -75,13 +75,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 flex">
-<a href="#"
-   onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
-   class="absolute top-5 right-5 text-red-600 p-3 rounded-md hover:text-red-800 transition"
->
-    <i class="fas fa-sign-out-alt logout-icon"></i> Logout
-</a>
+<body class="bg-gray-100 flex h-screen">
 <form id="logout-form" th:action="@{/logout}" method="post" style="display: none;">
     <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}" />
 </form>
@@ -152,19 +146,31 @@
                 <!-- Chat items will be appended here by JavaScript -->
             </div>
         </div>
+        <div class="flex items-center justify-between mt-auto border-t border-gray-700 pt-4 px-4">
+            <div class="text-md text-gray-400">
+                Logged in as <span class="font-bold text-lg" id="currentUser" th:text="${username}"></span>
+            </div>
+            <div class="relative">
+                <button onclick="event.preventDefault(); document.getElementById('logout-form').submit();" class="text-red-600 hover:text-red-800 transition group">
+                    <i class="fas fa-sign-out-alt text-xl"></i>
+                    <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Logout</span>
+                </button>
+            </div>
+        </div>
     </aside>
-    <main class="flex flex-col w-full h-full p-6 ml-72 transition-all duration-300 ease-in-out">
-        <div class="chat-details bg-white p-6 rounded-lg shadow-lg w-full">
-            <div class="chat-details-header flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-semibold">Chat Title</h2>
-                <!-- Additional controls can be added here -->
-            </div>
-            <div class="chat-messages h-64 overflow-y-auto mb-4">
-                <!-- Chat messages will be loaded here -->
-            </div>
-            <div class="chat-input flex">
-                <input type="text" placeholder="Type a message..." class="flex-1 p-2 border border-gray-300 rounded-l-md">
-                <button type="button" class="bg-blue-600 text-white p-2 rounded-r-md hover:bg-blue-800">Send</button>
+    <main class="flex-1 ml-72 flex flex-col">
+        <div class="flex-1 p-6 flex flex-col">
+            <div class="bg-white shadow-xl rounded-lg flex flex-col h-[calc(100vh-3rem)]">
+                <div class="chat-details-header flex justify-between items-center p-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+                    <h2 class="text-2xl font-semibold">Chat Title</h2>
+                </div>
+                <div class="chat-messages flex-1 overflow-y-auto p-4 space-y-4">
+                    <!-- Messages will be dynamically appended here -->
+                </div>
+                <div class="chat-input flex items-center p-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+                    <input type="text" placeholder="Type a message..." class="flex-1 p-2 border border-gray-300 rounded-l-md shadow-sm">
+                    <button id="sendButton" type="button" class="bg-blue-600 text-white p-2 rounded-r-md hover:bg-blue-800 transition duration-200 ease-in-out shadow-md">Send</button>
+                </div>
             </div>
         </div>
     </main>

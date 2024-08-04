@@ -1,19 +1,18 @@
 package com.hendy.spring_chat_app.model;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Date;
-
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @Builder
-public class FriendRequest {
+public class ReceivedMessage {
 
     @NotBlank
     private String type;
@@ -26,7 +25,12 @@ public class FriendRequest {
     @Size(max = 100)
     private String to;
 
-    private Long friendId;
+    @NotNull
+    private String historyId;
 
-    private String updatedAt;
+    @NotBlank
+    private String content;
+
+    @NotBlank
+    private String timestamp;
 }

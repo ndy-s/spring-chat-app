@@ -11,6 +11,9 @@ $(document).ajaxSend((e, xhr, options) => {
     xhr.setRequestHeader(header, token);
 });
 
+// Variable to store the current chat ID
+let currentChatId = null;
+
 // Function to establish WebSocket connection
 let stompClient = null;
 
@@ -44,51 +47,63 @@ function onError(error) {
 }
 
 // Function to handle incoming messages
-function handleMessage(message) {
-    const messageBody = message.body;
+function handleMessage(event) {
+    try {
+        const data = JSON.parse(event.body);
 
-    if (messageBody.startsWith("Error:")) {
-        showError(messageBody);
-    } else if (messageBody.startsWith("[Friend Request]")) {
-        handleFriendRequest(messageBody);
-    } else if (messageBody.startsWith("[Remove Friend]")) {
-        handleRemoveFriend(messageBody);
-    } else if (messageBody.startsWith("[Accepted Friend]")) {
-        handleAcceptedFriend(messageBody);
+        // Check if the message is an error
+        if (data.message !== undefined) {
+            showError(data.message);
+            return;
+        }
+
+        switch (data.type) {
+            case 'Friend Request':
+                handleFriendRequest(data);
+                break;
+            case 'Remove Friend':
+                handleRemoveFriend(data);
+                break;
+            case 'Accepted Friend':
+                handleAcceptedFriend(data);
+                break;
+            case 'Received Message':
+                handleReceivedMessage(data);
+                break;
+            default:
+                console.warn('Unknown message type:', data.type);
+        }
+    } catch (error) {
+        console.error('Error parsing message:', error);
+        showError('An error occurred while processing the message.');
     }
 }
 
 // Function to display error messages
-function showError(messageBody) {
+function showError(message) {
     Swal.fire({
         icon: 'error',
         title: 'Error',
-        text: messageBody,
+        text: message,
         confirmButtonText: 'OK'
     });
 }
 
 // Function to handle friend requests
-function handleFriendRequest(messageBody) {
-    const data = messageBody.split(". Request ID: ");
-    const usernames = data[0].split("New friend request from ")[1].split(" to ");
-    const fromUsername = usernames[0];
-    const toUsername = usernames[1];
-    const friendRequestId = data[1];
-
+function handleFriendRequest(data) {
     // Increment the badge count
     updateBadge(1);
 
     let friendRequestsDiv = $('.friend-requests ul');
     friendRequestsDiv.append(`
-        <li data-request-id="${friendRequestId}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
-            <span>${fromUsername}</span>
+        <li data-request-id="${data.friendId}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
+            <span>${data.from}</span>
             <div class="flex space-x-2">
-                <button class="flex items-center justify-center w-10 h-10 bg-green-500 text-white rounded-md hover:bg-green-600 relative group" onclick="acceptFriendRequest('${friendRequestId}')">
+                <button class="flex items-center justify-center w-10 h-10 bg-green-500 text-white rounded-md hover:bg-green-600 relative group" onclick="acceptFriendRequest('${data.friendId}')">
                     <i class="fas fa-check-circle text-base"></i>
                     <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Accept</span>
                 </button>
-                <button class="flex items-center justify-center w-10 h-10 bg-red-500 text-white rounded-md hover:bg-red-600 relative group" onclick="declineFriendRequest('${friendRequestId}')">
+                <button class="flex items-center justify-center w-10 h-10 bg-red-500 text-white rounded-md hover:bg-red-600 relative group" onclick="declineFriendRequest('${data.friendId}')">
                     <i class="fas fa-times-circle text-base"></i>
                     <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Decline</span>
                 </button>
@@ -98,42 +113,52 @@ function handleFriendRequest(messageBody) {
 }
 
 // Function to handle removing friends
-function handleRemoveFriend(messageBody) {
-    console.log(messageBody);
-    const data = messageBody.split(". Friend ID: ");
-    const friendId = data[1];
-    $(`li[data-friend-id="${friendId}"]`).remove();
+function handleRemoveFriend(data) {
+    $(`li[data-friend-id="${data.friendId}"]`).remove();
 }
 
 // Function to handle accepted friend request
-function handleAcceptedFriend(messageBody) {
-    console.log(messageBody);
-    const parts = messageBody.split('. Friend ID: ');
-    const friendId = parts[1].split(', Updated: ')[0];
-    const date = parts[1].split(', Updated: ')[1];
-    const usernamePart = parts[0].split('] ')[1];
-    const username = usernamePart.split(' has accepted you as a friend')[0];
-    const formattedDate = date;
-
+function handleAcceptedFriend(data) {
     const friendListDiv = $('.friend-list ul');
     friendListDiv.append(`
-        <li data-friend-id="${friendId}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
+        <li data-friend-id="${data.friendId}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
             <div class="flex flex-col">
-                <span>${username}</span>
-                <span class="text-gray-400 text-xs">Added on ${formattedDate}</span>
+                <span>${data.from}</span>
+                <span class="text-gray-400 text-xs">Added on ${data.updatedAt}</span>
             </div>
             <div class="flex items-center space-x-2">
-                <button class="flex items-center justify-center w-10 h-10 bg-blue-500 text-white rounded-md hover:bg-blue-600 relative group" onclick="startChat('${friendId}')">
+                <button class="flex items-center justify-center w-10 h-10 bg-blue-500 text-white rounded-md hover:bg-blue-600 relative group" onclick="startChat('${data.friendId}')">
                     <i class="fas fa-comments text-base"></i>
                     <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Chat</span>
                 </button>
-                <button class="flex items-center justify-center w-10 h-10 bg-red-500 text-white rounded-md hover:bg-red-600 relative group" onclick="removeFriend('${friendId}', '${username}')">
+                <button class="flex items-center justify-center w-10 h-10 bg-red-500 text-white rounded-md hover:bg-red-600 relative group" onclick="removeFriend('${data.friendId}', '${data.from}')">
                     <i class="fas fa-user-minus text-base"></i>
                     <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Remove</span>
                 </button>
             </div>
         </li>
     `);
+}
+
+// Function to handle received message
+function handleReceivedMessage(data) {
+    if (currentChatId === data.historyId) {
+        const chatMessagesContainer = $('.chat-messages');
+        const formattedDateTime = formatDateTime(data.timestamp);
+
+        const messageElement = $('<div></div>')
+            .addClass('flex justify-start mb-2')
+            .append(`
+                    <div class="p-4 rounded-lg shadow-sm bg-gray-200 max-w-lg break-words whitespace-normal overflow-hidden">
+                        <p class="font-semibold text-gray-800">${data.from}</p>
+                        <p>${data.content}</p>
+                        <p class="text-gray-600 text-right" style="font-size: 0.7rem;">${formattedDateTime}</p>
+                    </div>
+                `);
+
+        chatMessagesContainer.append(messageElement);
+        chatMessagesContainer.scrollTop(chatMessagesContainer[0].scrollHeight);
+    }
 }
 
 // Function to fetch chat history
@@ -148,25 +173,16 @@ function getChatHistory(username) {
 
             data.forEach(chat => {
                 const chatId = `chat_${chat.id}`;
-                const updatedDate = new Date(chat.lastMessageTimestamp);
-                const formattedDate = updatedDate.toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric'
-                });
-                const formattedTime = updatedDate.toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
+                const formattedDate = formatDateTime(chat.lastMessageTimestamp);
 
                 // Check if chat already exists
                 if ($(`#${chatId}`).length === 0) {
                     chatList.append(`
-                        <div id="${chatId}" class="chat-item bg-gray-800 text-white p-3 mb-2 rounded-md cursor-pointer hover:bg-gray-700 transition-colors relative" onclick="setActiveChat('${chatId}')">
+                        <div id="${chatId}" class="chat-item bg-gray-800 text-white p-3 mb-2 rounded-md cursor-pointer hover:bg-gray-700 transition-colors relative" onclick="setActiveChat('${chat.id}')">
                             <div class="flex flex-col h-full">
                                 <div class="flex justify-between items-center">
                                     <span class="text-lg font-bold">${chat.username}</span>
-                                    <span class="text-xs text-gray-400">${formattedDate} ${formattedTime || ''}</span>
+                                    <span class="text-xs text-gray-400">${formattedDate}</span>
                                 </div>
                                 <div class="text-gray-400 text-sm mt-1 flex-grow">
                                     ${0 || 'No messages yet'}
@@ -183,6 +199,7 @@ function getChatHistory(username) {
         },
         error: function (err) {
             console.error('Error fetching chat history:', err);
+            showError('Could not fetching chat history.');
         }
     });
 }
@@ -220,6 +237,7 @@ function getFriendRequest(username) {
         },
         error: function (err) {
             console.error('Error fetching friend requests:', err);
+            showError('Could not fetching friend requests.');
         }
     });
 }
@@ -264,13 +282,18 @@ function getFriendList(username) {
         },
         error: function (err) {
             console.error('Error fetching friend list:', err);
+            showError('Could not fetching friend list.')
         }
     });
 }
 
 // Function to send a friend request via WebSocket
 function sendFriendRequest(username) {
-    const request = {from: currentUsername, to: username};
+    const request = {
+        type: 'Friend Request',
+        from: currentUsername,
+        to: username
+    };
 
     stompClient.send("/app/friendRequest", {}, JSON.stringify(request));
 
@@ -322,6 +345,7 @@ function acceptFriendRequest(friendId) {
                 });
 
                 const request = {
+                    type: 'Accepted Friend',
                     from: currentUsername,
                     to: response.username,
                     friendId: friendId,
@@ -349,13 +373,9 @@ function acceptFriendRequest(friendId) {
                 `);
             });
         },
-        error: function () {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Could not accept friend request. Please try again.',
-                confirmButtonText: 'OK'
-            });
+        error: function (err) {
+            console.error('Error accepting friend request:', err);
+            showError('Could not accept friend request. Please try again.');
         }
     });
 }
@@ -377,13 +397,9 @@ function declineFriendRequest(friendId) {
                 updateBadge(-1);
             });
         },
-        error: function () {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Could not decline friend request. Please try again.',
-                confirmButtonText: 'OK'
-            });
+        error: function (err) {
+            console.error('Error declining friend request:', err);
+            showError('Could not decline friend request. Please try again.');
         }
     });
 }
@@ -401,18 +417,19 @@ function removeFriend(friendId, friendUsername) {
                 text: response,
                 confirmButtonText: 'OK'
             }).then(() => {
-                const request = {friendId, from: currentUsername, to: friendUsername};
+                const request = {
+                    type: 'Remove Friend',
+                    friendId: friendId,
+                    from: currentUsername,
+                    to: friendUsername
+                };
                 stompClient.send("/app/removeFriend", {}, JSON.stringify(request));
                 $(`li[data-friend-id="${friendId}"]`).remove();
             });
         },
-        error: function () {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Could not remove friend. Please try again.',
-                confirmButtonText: 'OK'
-            });
+        error: function (err) {
+            console.error('Error removing friend:', err);
+            showError('Could not remove friend. Please try again.');
         }
     });
 }
@@ -480,6 +497,7 @@ function searchUsers(query) {
         },
         error: function (err) {
             console.error('Error fetching user data: ', err);
+            showError('Could not search users. Please try again.');
         }
     });
 }
@@ -510,40 +528,35 @@ function startChat(friendId) {
             // If no error, proceed to handle chat data
             const chatId = `chat_${data.id}`;
             const chatList = $('#chatHistory');
-            const updatedDate = new Date(data.lastMessageTimestamp);
-            const formattedDate = updatedDate.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-            const formattedTime = updatedDate.toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
+            const formattedDate = formatDateTime(data.lastMessageTimestamp);
 
             // Check if chat already exists
             if ($(`#${chatId}`).length === 0) {
                 chatList.prepend(`
-                    <div id="${chatId}" class="chat-item bg-gray-800 text-white p-3 mb-2 rounded-md cursor-pointer hover:bg-gray-700 transition-colors" onclick="setActiveChat('${chatId}')">
-                        <div class="flex justify-between items-center">
-                            <span class="text-lg font-bold">${data.username}</span>
-                            <span class="text-xs text-gray-400">${formattedDate} ${formattedTime || ''}</span>
+                    <div id="${chatId}" class="chat-item bg-gray-800 text-white p-3 mb-2 rounded-md cursor-pointer hover:bg-gray-700 transition-colors relative" onclick="setActiveChat('${data.id}')">
+                        <div class="flex flex-col h-full">
+                            <div class="flex justify-between items-center">
+                                <span class="text-lg font-bold">${data.username}</span>
+                                <span class="text-xs text-gray-400">${formattedDate}</span>
+                            </div>
+                            <div class="text-gray-400 text-sm mt-1 flex-grow">
+                                ${0 || 'No messages yet'}
+                            </div>
+                            <button class="remove-history-btn absolute bottom-2 right-5 bg-transparent border-0 p-0 text-red-400 hover:text-red-600 group" onclick="removeMessageHistory('${chatId}')">
+                                <i class="fas fa-trash-alt text-base"></i>
+                                <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Remove</span>
+                            </button>
                         </div>
-                        <div class="text-gray-400 text-sm">${0 || 'No messages yet'}</div>
                     </div>
                 `);
             }
 
             // Set the chat as active
-            setActiveChat(chatId);
+            setActiveChat(data.id);
         },
         error: function () {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Could not fetching chat history. Please try again.',
-                confirmButtonText: 'OK'
-            });
+            console.error('Error fetching chat history:', err);
+            showError('Could not fetching chat history. Please try again.');
         }
     });
 }
@@ -558,15 +571,100 @@ function removeMessageHistory(chatId) {
 
         },
         error: function(err) {
-
+            console.error('Error removing message history:', err);
+            showError('Could not removing chat history. Please try again.');
         }
     });
 }
 
-// Function to set an active chat (placeholder)
-function setActiveChat(chatId) {
+// Function to set an active chat
+function setActiveChat(historyId) {
+    currentChatId = historyId;
+    const chatId = `chat_${historyId}`;
     $('.chat-item').removeClass('bg-gray-700').addClass('bg-gray-800');
     $(`#${chatId}`).removeClass('bg-gray-800').addClass('bg-gray-700');
+
+    $.ajax({
+        type: 'GET',
+        url: '/getChatData',
+        data: { historyId },
+        success: function(data) {
+            const chatMessagesContainer = $('.chat-messages');
+            chatMessagesContainer.empty();
+
+            data.forEach(message => {
+                const isCurrentUser = message.username === currentUsername;
+
+                const formattedDateTime = formatDateTime(message.timestamp);
+
+                const messageElement = $('<div></div>')
+                    .addClass(`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-2`)
+                    .append(`
+                        <div class="p-4 rounded-lg shadow-sm ${isCurrentUser ? 'bg-blue-200' : 'bg-gray-200'} max-w-lg break-words whitespace-normal overflow-hidden">
+                            <p class="font-semibold text-gray-800">${message.username}</p>
+                            <p>${message.content}</p>
+                            <p class="text-gray-600 text-right" style="font-size: 0.7rem;">${formattedDateTime}</p>
+                        </div>
+                    `);
+
+                chatMessagesContainer.append(messageElement);
+            });
+
+            chatMessagesContainer.scrollTop(chatMessagesContainer[0].scrollHeight);
+        },
+        error: function(err) {
+            console.error('Error fetching chat data:', err);
+            showError('Could not fetching chat data. Please try again.');
+        }
+    });
+}
+
+// Function to send a message
+function sendMessage(historyId) {
+    const messageContent = $('.chat-input input').val();
+    if (messageContent.trim() === '') return;
+
+    $.ajax({
+        type: 'POST',
+        url: '/sendMessage',
+        data: {
+            historyId,
+            username: currentUsername,
+            content: messageContent
+        },
+        success: function(response) {
+            $('.chat-input input').val('');
+            const chatMessagesContainer = $('.chat-messages');
+            const formattedDateTime = formatDateTime(response.timestamp);
+
+            const request = {
+                type: "Received Message",
+                from: currentUsername,
+                to: response.username,
+                historyId: historyId,
+                content: response.content,
+                timestamp: formattedDateTime
+            };
+            stompClient.send("/app/sendMessage", {}, JSON.stringify(request));
+
+            const messageElement = $('<div></div>')
+                .addClass('flex justify-end mb-2')
+                .append(`
+                    <div class="p-4 rounded-lg shadow-sm bg-blue-200 max-w-lg break-words whitespace-normal overflow-hidden">
+                        <p class="font-semibold text-gray-800">${currentUsername}</p>
+                        <p>${response.content}</p>
+                        <p class="text-gray-600 text-right" style="font-size: 0.7rem;">${formattedDateTime}</p>
+                    </div>
+                `);
+
+            chatMessagesContainer.append(messageElement);
+            chatMessagesContainer.scrollTop(chatMessagesContainer[0].scrollHeight);
+        },
+        error: function(err) {
+            console.error('Error sending a message:', err);
+            showError('Could not send the message. Please try again.');
+        }
+    });
 }
 
 // Helper function to update the badge count
@@ -580,6 +678,18 @@ function updateBadge(countChange) {
     } else {
         badge.text('0').addClass('hidden');
     }
+}
+
+// Function to format the date and time
+function formatDateTime(dateTime) {
+    const optionsDate = { year: 'numeric', month: 'short', day: 'numeric' };
+    const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: true };
+    const date = new Date(dateTime);
+
+    const formattedDate = date.toLocaleDateString('en-US', optionsDate);
+    const formattedTime = date.toLocaleTimeString('en-US', optionsTime);
+
+    return `${formattedDate}, ${formattedTime}`;
 }
 
 // Document ready function
@@ -621,6 +731,14 @@ $(document).ready(function () {
         setActiveMenuItem($(this));
         hideAllSections();
         $('.chat-history').addClass('active');
+    });
+
+    $('#sendButton').click(function() {
+        if (currentChatId !== null) {
+            sendMessage(currentChatId);
+        } else {
+            console.error('No active chat selected.');
+        }
     });
 
     // Utility functions
