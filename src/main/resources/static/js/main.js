@@ -38,7 +38,7 @@ function onError(error) {
         confirmButtonText: 'OK'
     }).then((result) => {
         if (result.isConfirmed) {
-            window.location.href = '/logout';
+            window.location.href = '/login';
         }
     });
 }
@@ -162,12 +162,20 @@ function getChatHistory(username) {
                 // Check if chat already exists
                 if ($(`#${chatId}`).length === 0) {
                     chatList.append(`
-                        <div id="${chatId}" class="chat-item bg-gray-800 text-white p-3 mb-2 rounded-md cursor-pointer hover:bg-gray-700 transition-colors" onclick="setActiveChat('${chatId}')">
-                            <div class="flex justify-between items-center">
-                                <span class="text-lg font-bold">${chat.username}</span>
-                                <span class="text-xs text-gray-400">${formattedDate} ${formattedTime}</span>
+                        <div id="${chatId}" class="chat-item bg-gray-800 text-white p-3 mb-2 rounded-md cursor-pointer hover:bg-gray-700 transition-colors relative" onclick="setActiveChat('${chatId}')">
+                            <div class="flex flex-col h-full">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-lg font-bold">${chat.username}</span>
+                                    <span class="text-xs text-gray-400">${formattedDate} ${formattedTime || ''}</span>
+                                </div>
+                                <div class="text-gray-400 text-sm mt-1 flex-grow">
+                                    ${0 || 'No messages yet'}
+                                </div>
+                                <button class="remove-history-btn absolute bottom-2 right-5 bg-transparent border-0 p-0 text-red-400 hover:text-red-600 group" onclick="removeMessageHistory('${chatId}')">
+                                    <i class="fas fa-trash-alt text-base"></i>
+                                    <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Remove</span>
+                                </button>
                             </div>
-                            <div class="text-gray-400 text-sm">${0 || 'No messages yet'}</div>
                         </div>
                     `);
                 }
@@ -536,6 +544,21 @@ function startChat(friendId) {
                 text: 'Could not fetching chat history. Please try again.',
                 confirmButtonText: 'OK'
             });
+        }
+    });
+}
+
+// Function to remove message history
+function removeMessageHistory(chatId) {
+    $.ajax({
+        type: 'POST',
+        url: '/removeHistory',
+        data: { chatId },
+        success: function(data) {
+
+        },
+        error: function(err) {
+
         }
     });
 }

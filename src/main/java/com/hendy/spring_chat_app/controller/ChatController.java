@@ -48,4 +48,10 @@ public class ChatController {
             return chatService.errorChatHistoryResponse("Error: An unexpected error occurred while fetching the chat history. " + e.getMessage());
         }
     }
+
+    @PostMapping("/removeHistory")
+    @ResponseBody
+    public void removeHistory() {
+        
+    }
 }
