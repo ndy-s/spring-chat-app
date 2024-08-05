@@ -733,6 +733,13 @@ $(document).ready(function () {
         $('.chat-history').addClass('active');
     });
 
+    $('.chat-input input[type="text"]').on('keydown', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            $('#sendButton').click();
+        }
+    });
+
     $('#sendButton').click(function() {
         if (currentChatId !== null) {
             sendMessage(currentChatId);
