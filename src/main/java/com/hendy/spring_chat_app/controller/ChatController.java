@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -40,15 +41,15 @@ public class ChatController {
 
     @GetMapping("/getChatData")
     @ResponseBody
-    public List<MessageData> getChatData(@RequestParam("historyId") String historyId) {
+    public List<MessageData> getChatData(@RequestParam("friendId") String friendId) {
         try {
-            Long id = Long.parseLong(historyId);
+            Long id = Long.parseLong(friendId);
             return chatService.getChatData(id);
         } catch (NumberFormatException e) {
-            log.error("Invalid chat ID format: {}", historyId, e);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error: Invalid history ID format.");
+            log.error("Invalid friend ID format: {}", friendId, e);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Error: Invalid friend ID format.");
         } catch (Exception e) {
-            log.error("An unexpected error occurred while fetching chat data for historyId: {}", historyId, e);
+            log.error("An unexpected error occurred while fetching chat data for friendId: {}", friendId, e);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error fetching chat data");
         }
     }
@@ -74,16 +75,16 @@ public class ChatController {
     @PostMapping("/sendMessage")
     @ResponseBody
     public MessageData sendMessage(
-            @RequestParam("historyId") String historyId,
+            @RequestParam("friendId") String friendId,
             @RequestParam("username") String username,
             @RequestParam("content") String content
     ) {
         try {
-            Long id = Long.parseLong(historyId);
+            Long id = Long.parseLong(friendId);
             return chatService.sendMessage(id, username, content);
         } catch (NumberFormatException e) {
-            log.error("Invalid history ID format.", e);
-            return chatService.errorMessageDataResponse("Error: Invalid history ID format. " + e.getMessage());
+            log.error("Invalid friend ID format.", e);
+            return chatService.errorMessageDataResponse("Error: Invalid friend ID format. " + e.getMessage());
         } catch (IllegalArgumentException e) {
             log.error("Error: ", e);
             return chatService.errorMessageDataResponse("Error: " + e.getMessage());
@@ -108,7 +109,18 @@ public class ChatController {
 
     @PostMapping("/removeHistory")
     @ResponseBody
-    public void removeHistory() {
-
+    public ResponseEntity<String> removeHistory(@RequestParam("friendId") String friendId, @RequestParam("username") String username) {
+        try {
+            Long id = Long.parseLong(friendId);
+            chatService.removeHistory(id, username);
+            return ResponseEntity.ok().build();
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body("Invalid friendId format");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred");
+        }
     }
+
 }

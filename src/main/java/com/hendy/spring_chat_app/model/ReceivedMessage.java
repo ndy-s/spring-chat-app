@@ -26,7 +26,7 @@ public class ReceivedMessage {
     private String to;
 
     @NotNull
-    private String historyId;
+    private String friendId;
 
     @NotBlank
     private String content;

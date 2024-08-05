@@ -142,22 +142,49 @@ function handleAcceptedFriend(data) {
 
 // Function to handle received message
 function handleReceivedMessage(data) {
-    if (currentChatId === data.historyId) {
-        const chatMessagesContainer = $('.chat-messages');
-        const formattedDateTime = formatDateTime(data.timestamp);
+    const chatList = $('#chatHistory');
+    const chatMessagesContainer = $('.chat-messages');
+    const chatId = `chat_${data.friendId}`;
+    const chatItem = $(`#${chatId}`);
 
+    // Append new message if it's from the current chat
+    if (currentChatId === data.friendId) {
         const messageElement = $('<div></div>')
             .addClass('flex justify-start mb-2')
             .append(`
-                    <div class="p-4 rounded-lg shadow-sm bg-gray-200 max-w-lg break-words whitespace-normal overflow-hidden">
-                        <p class="font-semibold text-gray-800">${data.from}</p>
-                        <p>${data.content}</p>
-                        <p class="text-gray-600 text-right" style="font-size: 0.7rem;">${formattedDateTime}</p>
-                    </div>
-                `);
+                <div class="p-4 rounded-lg shadow-sm bg-gray-200 max-w-lg break-words whitespace-normal overflow-hidden">
+                    <p class="font-semibold text-gray-800">${data.from}</p>
+                    <p>${data.content}</p>
+                    <p class="text-gray-600 text-right" style="font-size: 0.7rem;">${data.timestamp}</p>
+                </div>
+            `);
 
         chatMessagesContainer.append(messageElement);
         chatMessagesContainer.scrollTop(chatMessagesContainer[0].scrollHeight);
+    }
+
+    if (chatItem.length) {
+        chatItem.find('.chat-timestamp').text(data.timestamp);
+        chatItem.find('.chat-message').text(data.content);
+        chatItem.find('.chat-message').attr('title', data.content);
+    } else {
+        chatList.prepend(`
+            <div id="${chatId}" class="chat-item bg-gray-800 text-white p-3 mb-2 rounded-md cursor-pointer hover:bg-gray-700 transition-colors relative" onclick="setActiveChat('${data.friendId}')">
+                <div class="flex flex-col h-full">
+                    <div class="flex justify-between items-center">
+                        <span class="text-lg font-bold w-2/5 truncate">${data.from}</span>
+                        <span class="chat-timestamp text-xs text-gray-400">${data.timestamp}</span>
+                    </div>
+                    <div class="chat-message text-gray-400 text-sm mt-1 flex-grow w-4/5 truncate" title="${data.content}">
+                        ${data.content}
+                    </div>
+                    <button class="remove-history-btn absolute bottom-2 right-5 bg-transparent border-0 p-0 text-red-400 hover:text-red-600 group" onclick="removeMessageHistory('${data.friendId}')">
+                        <i class="fas fa-trash-alt text-base"></i>
+                        <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Remove</span>
+                    </button>
+                </div>
+            </div>
+        `);
     }
 }
 
@@ -182,12 +209,12 @@ function getChatHistory(username) {
                             <div class="flex flex-col h-full">
                                 <div class="flex justify-between items-center">
                                     <span class="text-lg font-bold w-2/5 truncate">${chat.username}</span>
-                                    <span class="text-xs text-gray-400">${formattedDate}</span>
+                                    <span class="chat-timestamp text-xs text-gray-400">${formattedDate}</span>
                                 </div>
-                                <div class="text-gray-400 text-sm mt-1 flex-grow w-4/5 truncate" title="${chat.lastMessage || 'No messages yet'}">
+                                <div class="chat-message text-gray-400 text-sm mt-1 flex-grow w-4/5 truncate" title="${chat.lastMessage || 'No messages yet'}">
                                     ${chat.lastMessage || 'No messages yet'}
                                 </div>
-                                <button class="remove-history-btn absolute bottom-2 right-5 bg-transparent border-0 p-0 text-red-400 hover:text-red-600 group" onclick="removeMessageHistory('${chatId}')">
+                                <button class="remove-history-btn absolute bottom-2 right-5 bg-transparent border-0 p-0 text-red-400 hover:text-red-600 group" onclick="removeMessageHistory('${chat.id}')">
                                     <i class="fas fa-trash-alt text-base"></i>
                                     <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Remove</span>
                                 </button>
@@ -406,30 +433,45 @@ function declineFriendRequest(friendId) {
 
 // Function to remove a friend
 function removeFriend(friendId, friendUsername) {
-    $.ajax({
-        type: 'POST',
-        url: '/friend/remove',
-        data: { friendId },
-        success: function (response) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Friend Removed',
-                text: response,
-                confirmButtonText: 'OK'
-            }).then(() => {
-                const request = {
-                    type: 'Remove Friend',
-                    friendId: friendId,
-                    from: currentUsername,
-                    to: friendUsername
-                };
-                stompClient.send("/app/removeFriend", {}, JSON.stringify(request));
-                $(`li[data-friend-id="${friendId}"]`).remove();
+    // Show confirmation dialog
+    Swal.fire({
+        title: 'Are you sure?',
+        text: `Do you really want to remove ${friendUsername}?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, remove friend!',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Proceed with AJAX request if user confirms
+            $.ajax({
+                type: 'POST',
+                url: '/friend/remove',
+                data: { friendId },
+                success: function (response) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Friend Removed',
+                        text: response,
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        const request = {
+                            type: 'Remove Friend',
+                            friendId: friendId,
+                            from: currentUsername,
+                            to: friendUsername
+                        };
+                        stompClient.send("/app/removeFriend", {}, JSON.stringify(request));
+                        $(`li[data-friend-id="${friendId}"]`).remove();
+                    });
+                },
+                error: function (err) {
+                    console.error('Error removing friend:', err);
+                    showError('Could not remove friend. Please try again.');
+                }
             });
-        },
-        error: function (err) {
-            console.error('Error removing friend:', err);
-            showError('Could not remove friend. Please try again.');
         }
     });
 }
@@ -537,12 +579,12 @@ function startChat(friendId) {
                         <div class="flex flex-col h-full">
                             <div class="flex justify-between items-center">
                                 <span class="text-lg font-bold w-2/5 truncate">${data.username}</span>
-                                <span class="text-xs text-gray-400">${formattedDate}</span>
+                                <span class="chat-timestamp text-xs text-gray-400">${formattedDate}</span>
                             </div>
-                            <div class="text-gray-400 text-sm mt-1 flex-grow w-4/5 truncate" title="${data.lastMessage || 'No messages yet'}">
+                            <div class="chat-message text-gray-400 text-sm mt-1 flex-grow w-4/5 truncate" title="${data.lastMessage || 'No messages yet'}">
                                 ${data.lastMessage || 'No messages yet'}
                             </div>
-                            <button class="remove-history-btn absolute bottom-2 right-5 bg-transparent border-0 p-0 text-red-400 hover:text-red-600 group" onclick="removeMessageHistory('${chatId}')">
+                            <button class="remove-history-btn absolute bottom-2 right-5 bg-transparent border-0 p-0 text-red-400 hover:text-red-600 group" onclick="removeMessageHistory('${data.id}')">
                                 <i class="fas fa-trash-alt text-base"></i>
                                 <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs p-1 rounded-md whitespace-nowrap hidden group-hover:block">Remove</span>
                             </button>
@@ -562,32 +604,60 @@ function startChat(friendId) {
 }
 
 // Function to remove message history
-function removeMessageHistory(chatId) {
-    $.ajax({
-        type: 'POST',
-        url: '/removeHistory',
-        data: { chatId },
-        success: function(data) {
+function removeMessageHistory(friendId) {
+    const chatId = `chat_${friendId}`;
 
-        },
-        error: function(err) {
-            console.error('Error removing message history:', err);
-            showError('Could not removing chat history. Please try again.');
+    Swal.fire({
+        title: 'Are you sure?',
+        text: 'This will remove the chat history permanently.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, remove it!',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                type: 'POST',
+                url: '/removeHistory',
+                data: { friendId, username: currentUsername },
+                success: function() {
+                    if (currentChatId === friendId) {
+                        currentChatId = null;
+                        const chatMessagesContainer = $('.chat-messages');
+                        chatMessagesContainer.empty();
+                    }
+
+                    $(`#${chatId}`).remove();
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Chat History Removed',
+                        text: 'The chat history has been successfully removed.',
+                        confirmButtonText: 'OK'
+                    });
+                },
+                error: function(err) {
+                    console.error('Error removing message history:', err);
+                    showError('Could not remove chat history. Please try again.');
+                }
+            });
         }
     });
 }
 
 // Function to set an active chat
-function setActiveChat(historyId) {
-    currentChatId = historyId;
-    const chatId = `chat_${historyId}`;
+function setActiveChat(friendId) {
+    currentChatId = friendId;
+    const chatId = `chat_${friendId}`;
     $('.chat-item').removeClass('bg-gray-700').addClass('bg-gray-800');
     $(`#${chatId}`).removeClass('bg-gray-800').addClass('bg-gray-700');
 
     $.ajax({
         type: 'GET',
         url: '/getChatData',
-        data: { historyId },
+        data: { friendId },
         success: function(data) {
             const chatMessagesContainer = $('.chat-messages');
             chatMessagesContainer.empty();
@@ -620,7 +690,7 @@ function setActiveChat(historyId) {
 }
 
 // Function to send a message
-function sendMessage(historyId) {
+function sendMessage(friendId) {
     const messageContent = $('.chat-input input').val();
     if (messageContent.trim() === '') return;
 
@@ -628,7 +698,7 @@ function sendMessage(historyId) {
         type: 'POST',
         url: '/sendMessage',
         data: {
-            historyId,
+            friendId,
             username: currentUsername,
             content: messageContent
         },
@@ -641,7 +711,7 @@ function sendMessage(historyId) {
                 type: "Received Message",
                 from: currentUsername,
                 to: response.username,
-                historyId: historyId,
+                friendId: friendId,
                 content: response.content,
                 timestamp: formattedDateTime
             };
@@ -659,6 +729,15 @@ function sendMessage(historyId) {
 
             chatMessagesContainer.append(messageElement);
             chatMessagesContainer.scrollTop(chatMessagesContainer[0].scrollHeight);
+
+            // Update chat item in chat history list
+            const chatId = `chat_${friendId}`;
+            const chatItem = $(`#${chatId}`);
+            if (chatItem.length) {
+                chatItem.find('.chat-timestamp').text(formattedDateTime);
+                chatItem.find('.chat-message').text(response.content);
+                chatItem.find('.chat-message').attr('title', response.content);
+            }
         },
         error: function(err) {
             console.error('Error sending a message:', err);

@@ -34,63 +34,60 @@ public class ChatService {
     }
 
     @Transactional
-    public List<MessageData> getChatData(Long chatHistoryId) {
-        ChatHistory chatHistory = chatHistoryRepository.findById(chatHistoryId).orElse(null);
+    public List<MessageData> getChatData(Long friendId) {
+        Friend friend = friendRepository.findById(friendId).orElse(null);
 
-        if (chatHistory == null) {
+        if (friend == null) {
             throw new RuntimeException("Chat history not found");
         }
 
-        User user = chatHistory.getUser();
-        User friendUser = chatHistory.getFriend();
+        User user = friend.getUser();
+        User friendUser = friend.getFriend();
 
         return messageRepository.findChatMessages(user, friendUser);
     }
 
     @Transactional
     public MessageHistory chatFriend(Long id, String username) {
-        Optional<Friend> friendRequest = friendRepository.findById(id);
+        Friend friendEntity = friendRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Friend relationship does not exist"));
 
-        if (friendRequest.isEmpty()) {
-            throw new RuntimeException("Friend relationship does not exist");
-        }
+        User currentUser = friendEntity.getUser();
+        User friendUser = friendEntity.getFriend();
 
-        Friend friend = friendRequest.get();
-        User user = friend.getUser();
-        User friendUser = friend.getFriend();
+        boolean isCurrentUser = currentUser.getUsername().equals(username);
 
-        Optional<ChatHistory> chatHistoryOpt = chatHistoryRepository.findByUserAndFriend(user, friendUser);
-        if (chatHistoryOpt.isEmpty()) chatHistoryOpt = chatHistoryRepository.findByUserAndFriend(friendUser, user);
-        ChatHistory chatHistory = chatHistoryOpt.orElseGet(() -> {
-            ChatHistory newChatHistory = new ChatHistory();
-            newChatHistory.setUser(user);
-            newChatHistory.setFriend(friendUser);
-            newChatHistory.setLastMessageTimestamp(new Date());
-            return chatHistoryRepository.save(newChatHistory);
-        });
+        User user = isCurrentUser ? currentUser : friendUser;
+        User friend = isCurrentUser ? friendUser : currentUser;
 
-        boolean isCurrentUser = user.getUsername().equals(username);
-        User targetUser = isCurrentUser ? friendUser : user;
+        ChatHistory chatHistory = chatHistoryRepository.findByUserAndFriend(user, friend)
+                .orElseGet(() -> createChatHistory(user, friend));
 
         return MessageHistory.builder()
-                .id(chatHistory.getId())
-                .userId(targetUser.getId())
-                .username(targetUser.getUsername())
+                .id(friendEntity.getId())
+                .userId(friend.getId())
+                .username(friend.getUsername())
                 .lastMessageTimestamp(chatHistory.getLastMessageTimestamp())
                 .build();
     }
 
     @Transactional
-    public MessageData sendMessage(Long chatHistoryId, String username, String content) {
-        if (chatHistoryId == null || username == null || content == null || content.trim().isEmpty()) {
+    public MessageData sendMessage(Long friendId, String username, String content) {
+        if (friendId == null || username == null || content == null || content.trim().isEmpty()) {
             throw new IllegalArgumentException("Invalid input parameters");
         }
 
-        ChatHistory chatHistory = chatHistoryRepository.findById(chatHistoryId)
-                .orElseThrow(() -> new RuntimeException("Chat history not found"));
+        Friend friend = friendRepository.findById(friendId)
+                .orElseThrow(() -> new RuntimeException("Friend not found"));
 
-        User sender = chatHistory.getUser().getUsername().equals(username) ? chatHistory.getUser() : chatHistory.getFriend();
-        User receiver = chatHistory.getUser().getUsername().equals(username) ? chatHistory.getFriend() : chatHistory.getUser();
+        User sender = friend.getUser().getUsername().equals(username) ? friend.getUser() : friend.getFriend();
+        User receiver = friend.getUser().getUsername().equals(username) ? friend.getFriend() : friend.getUser();
+
+        ChatHistory senderToReceiver = chatHistoryRepository.findByUserAndFriend(sender, receiver)
+                .orElseThrow(() -> new RuntimeException("Chat history not found for sender"));
+
+        ChatHistory receiverToSender = chatHistoryRepository.findByUserAndFriend(receiver, sender)
+                .orElseGet(() -> createChatHistory(receiver, sender));
 
         Message newMessage = new Message();
         newMessage.setContent(content);
@@ -99,16 +96,40 @@ public class ChatService {
         newMessage.setTimestamp(new Date());
         messageRepository.save(newMessage);
 
-        chatHistory.setLastMessage(newMessage);
-        chatHistoryRepository.save(chatHistory);
+        senderToReceiver.setLastMessage(newMessage);
+        senderToReceiver.setLastMessageTimestamp(new Date());
+        chatHistoryRepository.save(senderToReceiver);
+
+        receiverToSender.setLastMessage(newMessage);
+        receiverToSender.setLastMessageTimestamp(new Date());
+        chatHistoryRepository.save(receiverToSender);
 
         return MessageData.builder()
-                .id(chatHistoryId)
+                .id(friendId)
                 .content(content)
                 .userId(receiver.getId())
                 .username(receiver.getUsername())
                 .timestamp(newMessage.getTimestamp())
                 .build();
+    }
+
+    @Transactional
+    public void removeHistory(Long friendId, String username) {
+        Friend friendEntity = friendRepository.findById(friendId)
+                .orElseThrow(() -> new RuntimeException("Friend not found"));
+
+        User currentUser = friendEntity.getUser();
+        User friendUser = friendEntity.getFriend();
+
+        boolean isCurrentUser = currentUser.getUsername().equals(username);
+
+        User user = isCurrentUser ? currentUser : friendUser;
+        User friend = isCurrentUser ? friendUser : currentUser;
+
+        ChatHistory chatHistory = chatHistoryRepository.findByUserAndFriend(user, friend)
+                .orElseThrow(() -> new RuntimeException("Chat history not found"));
+
+        chatHistoryRepository.delete(chatHistory);
     }
 
     public MessageHistory errorChatHistoryResponse(String message) {
@@ -128,6 +149,16 @@ public class ChatService {
                 .content(message)
                 .timestamp(null)
                 .build();
+    }
+
+    private ChatHistory createChatHistory(User user, User friend) {
+        ChatHistory newChatHistory = ChatHistory.builder()
+                .user(user)
+                .friend(friend)
+                .lastMessage(null)
+                .lastMessageTimestamp(new Date())
+                .build();
+        return chatHistoryRepository.save(newChatHistory);
     }
 
 }

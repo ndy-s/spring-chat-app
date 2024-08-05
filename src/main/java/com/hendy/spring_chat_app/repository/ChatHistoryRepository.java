@@ -17,13 +17,14 @@ public interface ChatHistoryRepository extends JpaRepository<ChatHistory, Long> 
     Optional<ChatHistory> findByUserAndFriend(User user, User friend);
 
     @Query("SELECT new com.hendy.spring_chat_app.model.MessageHistory(" +
-            "ch.id, " +
-            "CASE WHEN ch.user.username = :username THEN ch.friend.id ELSE ch.user.id END, " +
-            "CASE WHEN ch.user.username = :username THEN ch.friend.username ELSE ch.user.username END, " +
+            "f.id, " +
+            "ch.friend.id, " +
+            "ch.friend.username, " +
             "ch.lastMessage.content, " +
             "ch.lastMessageTimestamp)" +
             "FROM ChatHistory ch " +
             "LEFT JOIN ch.lastMessage lm " +
-            "WHERE ch.user.username = :username OR ch.friend.username = :username")
+            "LEFT JOIN Friend f ON (f.user = ch.user AND f.friend = ch.friend) OR (f.user = ch.friend AND f.friend = ch.user) " +
+            "WHERE ch.user.username = :username")
     List<MessageHistory> findMessageHistoriesByUsername(@Param("username") String username);
 }
