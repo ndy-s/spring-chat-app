@@ -1,6 +1,5 @@
 package com.hendy.spring_chat_app.controller;
 
-import com.hendy.spring_chat_app.entity.Message;
 import com.hendy.spring_chat_app.model.ErrorMessage;
 import com.hendy.spring_chat_app.model.MessageData;
 import com.hendy.spring_chat_app.model.MessageHistory;

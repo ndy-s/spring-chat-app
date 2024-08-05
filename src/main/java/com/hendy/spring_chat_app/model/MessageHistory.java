@@ -22,5 +22,7 @@ public class MessageHistory {
     @NotBlank
     private String username;
 
+    private String lastMessage;
+
     private Date lastMessageTimestamp;
 }

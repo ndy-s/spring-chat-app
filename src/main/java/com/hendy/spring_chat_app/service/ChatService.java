@@ -60,6 +60,7 @@ public class ChatService {
         User friendUser = friend.getFriend();
 
         Optional<ChatHistory> chatHistoryOpt = chatHistoryRepository.findByUserAndFriend(user, friendUser);
+        if (chatHistoryOpt.isEmpty()) chatHistoryOpt = chatHistoryRepository.findByUserAndFriend(friendUser, user);
         ChatHistory chatHistory = chatHistoryOpt.orElseGet(() -> {
             ChatHistory newChatHistory = new ChatHistory();
             newChatHistory.setUser(user);
@@ -97,6 +98,9 @@ public class ChatService {
         newMessage.setReceiver(receiver);
         newMessage.setTimestamp(new Date());
         messageRepository.save(newMessage);
+
+        chatHistory.setLastMessage(newMessage);
+        chatHistoryRepository.save(chatHistory);
 
         return MessageData.builder()
                 .id(chatHistoryId)

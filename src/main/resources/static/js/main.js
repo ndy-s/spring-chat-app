@@ -96,8 +96,8 @@ function handleFriendRequest(data) {
 
     let friendRequestsDiv = $('.friend-requests ul');
     friendRequestsDiv.append(`
-        <li data-request-id="${data.friendId}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
-            <span>${data.from}</span>
+        <li data-request-id="${data.friendId}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center cursor-pointer">
+            <span class="w-3/5 truncate" title="${data.from}">${data.from}</span>
             <div class="flex space-x-2">
                 <button class="flex items-center justify-center w-10 h-10 bg-green-500 text-white rounded-md hover:bg-green-600 relative group" onclick="acceptFriendRequest('${data.friendId}')">
                     <i class="fas fa-check-circle text-base"></i>
@@ -121,9 +121,9 @@ function handleRemoveFriend(data) {
 function handleAcceptedFriend(data) {
     const friendListDiv = $('.friend-list ul');
     friendListDiv.append(`
-        <li data-friend-id="${data.friendId}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
-            <div class="flex flex-col">
-                <span>${data.from}</span>
+        <li data-friend-id="${data.friendId}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center cursor-pointer">
+            <div class="flex flex-col w-3/5">
+                <span class="truncate" title="${data.from}">${data.from}</span>
                 <span class="text-gray-400 text-xs">Added on ${data.updatedAt}</span>
             </div>
             <div class="flex items-center space-x-2">
@@ -181,11 +181,11 @@ function getChatHistory(username) {
                         <div id="${chatId}" class="chat-item bg-gray-800 text-white p-3 mb-2 rounded-md cursor-pointer hover:bg-gray-700 transition-colors relative" onclick="setActiveChat('${chat.id}')">
                             <div class="flex flex-col h-full">
                                 <div class="flex justify-between items-center">
-                                    <span class="text-lg font-bold">${chat.username}</span>
+                                    <span class="text-lg font-bold w-2/5 truncate">${chat.username}</span>
                                     <span class="text-xs text-gray-400">${formattedDate}</span>
                                 </div>
-                                <div class="text-gray-400 text-sm mt-1 flex-grow">
-                                    ${0 || 'No messages yet'}
+                                <div class="text-gray-400 text-sm mt-1 flex-grow w-4/5 truncate" title="${chat.lastMessage || 'No messages yet'}">
+                                    ${chat.lastMessage || 'No messages yet'}
                                 </div>
                                 <button class="remove-history-btn absolute bottom-2 right-5 bg-transparent border-0 p-0 text-red-400 hover:text-red-600 group" onclick="removeMessageHistory('${chatId}')">
                                     <i class="fas fa-trash-alt text-base"></i>
@@ -219,8 +219,8 @@ function getFriendRequest(username) {
 
             data.forEach(function (request) {
                 friendRequestsDiv.append(`
-                    <li data-request-id="${request.id}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
-                        <span>${request.username}</span>
+                    <li data-request-id="${request.id}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center cursor-pointer">
+                        <span class="w-3/5 truncate" title="${request.username}">${request.username}</span>
                         <div class="flex space-x-2">
                             <button class="flex items-center justify-center w-10 h-10 bg-green-500 text-white rounded-md hover:bg-green-600 relative group" onclick="acceptFriendRequest('${request.id}')">
                                 <i class="fas fa-check-circle text-base"></i>
@@ -261,9 +261,9 @@ function getFriendList(username) {
                 });
 
                 friendListDiv.append(`
-                    <li data-friend-id="${friend.id}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
-                        <div class="flex flex-col">
-                            <span>${friend.username}</span>
+                    <li data-friend-id="${friend.id}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center cursor-pointer">
+                        <div class="flex flex-col w-3/5">
+                            <span class="truncate" title="${friend.username}">${friend.username}</span>
                             <span class="text-gray-400 text-xs">Added on ${formattedDate}</span>
                         </div>
                         <div class="flex items-center space-x-2">
@@ -354,9 +354,9 @@ function acceptFriendRequest(friendId) {
                 stompClient.send("/app/acceptedFriendRequest", {}, JSON.stringify(request));
 
                 friendListDiv.append(`
-                    <li data-friend-id="${response.id}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
-                        <div class="flex flex-col">
-                            <span>${response.username}</span>
+                    <li data-friend-id="${response.id}" class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center cursor-pointer">
+                        <div class="flex flex-col w-3/5">
+                            <span class="truncate" title="${response.username}">${response.username}</span>
                             <span class="text-gray-400 text-xs">Added on ${formattedDate}</span>
                         </div>
                         <div class="flex items-center space-x-2">
@@ -488,8 +488,8 @@ function searchUsers(query) {
                 }
 
                 resultsDiv.append(`
-                    <li class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center">
-                        <span>${user.username}</span>
+                    <li class="bg-gray-700 text-white p-2 mb-2 rounded-md flex justify-between items-center cursor-pointer">
+                        <span class="w-4/5 truncate" title="${user.username}">${user.username}</span>
                         ${buttonHTML}
                     </li>
                 `);
@@ -536,11 +536,11 @@ function startChat(friendId) {
                     <div id="${chatId}" class="chat-item bg-gray-800 text-white p-3 mb-2 rounded-md cursor-pointer hover:bg-gray-700 transition-colors relative" onclick="setActiveChat('${data.id}')">
                         <div class="flex flex-col h-full">
                             <div class="flex justify-between items-center">
-                                <span class="text-lg font-bold">${data.username}</span>
+                                <span class="text-lg font-bold w-2/5 truncate">${data.username}</span>
                                 <span class="text-xs text-gray-400">${formattedDate}</span>
                             </div>
-                            <div class="text-gray-400 text-sm mt-1 flex-grow">
-                                ${0 || 'No messages yet'}
+                            <div class="text-gray-400 text-sm mt-1 flex-grow w-4/5 truncate" title="${data.lastMessage || 'No messages yet'}">
+                                ${data.lastMessage || 'No messages yet'}
                             </div>
                             <button class="remove-history-btn absolute bottom-2 right-5 bg-transparent border-0 p-0 text-red-400 hover:text-red-600 group" onclick="removeMessageHistory('${chatId}')">
                                 <i class="fas fa-trash-alt text-base"></i>
@@ -698,6 +698,66 @@ $(document).ready(function () {
     getChatHistory(currentUsername);
     getFriendRequest(currentUsername);
     getFriendList(currentUsername);
+
+    const $chatMessages = $('.chat-messages');
+
+    let isDragging = false;
+    let startY;
+    let scrollTop;
+    let lastY;
+    let velocity = 0;
+    let momentumInterval;
+
+    $chatMessages.on('mousedown', function(e) {
+        isDragging = true;
+        startY = e.pageY - $chatMessages.offset().top;
+        scrollTop = $chatMessages.scrollTop();
+        lastY = startY;
+        $chatMessages.addClass('cursor-grabbing');
+        clearInterval(momentumInterval); // Stop momentum on drag start
+    });
+
+    $(document).on('mouseup', function() {
+        if (isDragging) {
+            isDragging = false;
+            $chatMessages.removeClass('cursor-grabbing').addClass('cursor-grab');
+            // Start momentum effect
+            startMomentum();
+        }
+    });
+
+    $chatMessages.on('mouseleave mouseup', function() {
+        if (isDragging) {
+            isDragging = false;
+            $chatMessages.removeClass('cursor-grabbing').addClass('cursor-grab');
+            // Start momentum effect
+            startMomentum();
+        }
+    });
+
+    $chatMessages.on('mousemove', function(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        const y = e.pageY - $chatMessages.offset().top;
+        const walk = (y - startY) * 2; // Scroll-fast ratio
+        $chatMessages.scrollTop(scrollTop - walk);
+
+        // Calculate velocity
+        velocity = y - lastY;
+        lastY = y;
+    });
+
+    function startMomentum() {
+        momentumInterval = setInterval(() => {
+            if (Math.abs(velocity) < 1) {
+                clearInterval(momentumInterval);
+                return;
+            }
+
+            $chatMessages.scrollTop($chatMessages.scrollTop() - velocity);
+            velocity *= 0.95; // Friction
+        }, 16); // Roughly 60 FPS
+    }
 
     // Search form submission handler
     $('#searchForm').submit(function (event) {

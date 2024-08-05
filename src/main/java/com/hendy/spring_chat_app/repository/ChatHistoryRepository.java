@@ -20,8 +20,10 @@ public interface ChatHistoryRepository extends JpaRepository<ChatHistory, Long> 
             "ch.id, " +
             "CASE WHEN ch.user.username = :username THEN ch.friend.id ELSE ch.user.id END, " +
             "CASE WHEN ch.user.username = :username THEN ch.friend.username ELSE ch.user.username END, " +
-            "ch.lastMessageTimestamp) " +
+            "ch.lastMessage.content, " +
+            "ch.lastMessageTimestamp)" +
             "FROM ChatHistory ch " +
+            "LEFT JOIN ch.lastMessage lm " +
             "WHERE ch.user.username = :username OR ch.friend.username = :username")
     List<MessageHistory> findMessageHistoriesByUsername(@Param("username") String username);
 }

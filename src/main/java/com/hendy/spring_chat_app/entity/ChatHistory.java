@@ -26,7 +26,7 @@ public class ChatHistory {
     @JoinColumn(name = "friend_id", nullable = false)
     private User friend;
 
-    @ManyToOne
+    @OneToOne
     @JoinColumn(name = "last_message_id")
     private Message lastMessage;
 
