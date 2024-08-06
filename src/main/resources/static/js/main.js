@@ -340,7 +340,7 @@ function acceptFriendRequest(friendId) {
     $.ajax({
         type: 'POST',
         url: '/friendRequests/accept',
-        data: { friendId },
+        data: { friendId, username: currentUsername },
         success: function (response) {
             // Check if the response contains an error message
             if (response.username.startsWith("Error:")) {

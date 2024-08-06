@@ -54,8 +54,11 @@ public class FriendService {
             // Check the current status and handle accordingly
             if (friend.getStatus() == FriendshipStatus.PENDING) {
                 throw new IllegalStateException("Friend request already sent.");
-            } else {
+            } else if (friend.getStatus() == FriendshipStatus.ACCEPTED) {
                 throw new IllegalStateException("Friendship already exists.");
+            } else if (friend.getStatus() == FriendshipStatus.REMOVED) {
+                friend.setStatus(FriendshipStatus.PENDING);
+                return friendRepository.save(friend);
             }
         }
 
@@ -66,8 +69,11 @@ public class FriendService {
 
             if (reverseFriend.getStatus() == FriendshipStatus.PENDING) {
                 throw new IllegalStateException("A pending friend request already exists from " + request.getTo() + " to " + request.getFrom());
-            } else {
+            } else if (reverseFriend.getStatus() == FriendshipStatus.ACCEPTED) {
                 throw new IllegalStateException("Friendship already exists.");
+            } else if (reverseFriend.getStatus() == FriendshipStatus.REMOVED) {
+                reverseFriend.setStatus(FriendshipStatus.PENDING);
+                return friendRepository.save(reverseFriend);
             }
         }
 
@@ -82,19 +88,29 @@ public class FriendService {
     }
 
     @Transactional
-    public FriendByStatus acceptFriendRequest(Long id) {
+    public FriendByStatus acceptFriendRequest(Long id, String username) {
         Optional<Friend> friendRequest = friendRepository.findById(id);
 
         if (friendRequest.isPresent()) {
             Friend friend = friendRequest.get();
+
+            User matchedUser;
+            if (friend.getUser().getUsername().equals(username)) {
+                matchedUser = friend.getFriend();
+            } else if (friend.getFriend().getUsername().equals(username)) {
+                matchedUser = friend.getUser();
+            } else {
+                throw new IllegalArgumentException("Username does not match the user or friend in the friend request");
+            }
+
             friend.setStatus(FriendshipStatus.ACCEPTED);
             friendRepository.save(friend);
 
             // Convert Friend to FriendByStatus
             return FriendByStatus.builder()
                     .id(friend.getId())
-                    .userId(friend.getUser().getId())
-                    .username(friend.getUser().getUsername())
+                    .userId(matchedUser.getId())
+                    .username(matchedUser.getUsername())
                     .updatedAt(friend.getUpdatedAt())
                     .build();
         } else {
@@ -116,7 +132,9 @@ public class FriendService {
         Optional<Friend> friendRequest = friendRepository.findById(id);
 
         if (friendRequest.isPresent()) {
-            friendRepository.deleteById(id);
+            Friend friend = friendRequest.get();
+            friend.setStatus(FriendshipStatus.REMOVED);
+            friendRepository.save(friend);
         } else {
             throw new IllegalArgumentException("Friend not found for ID: " + id);
         }

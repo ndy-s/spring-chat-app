@@ -72,10 +72,10 @@ public class FriendController {
 
     @PostMapping("/friendRequests/accept")
     @ResponseBody
-    public FriendByStatus acceptFriendRequest(@RequestParam("friendId") String friendId) {
+    public FriendByStatus acceptFriendRequest(@RequestParam("friendId") String friendId, @RequestParam("username") String username) {
         try {
             Long id = Long.parseLong(friendId);
-            return friendService.acceptFriendRequest(id);
+            return friendService.acceptFriendRequest(id, username);
         } catch (NumberFormatException e) {
             log.error("Invalid friend ID format.", e);
             return friendService.errorFriendRequestResponse("Error: Invalid friend ID format. " + e.getMessage());
